@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hello World · Island Simulation</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            color: #0f172a;
+            /* Tropical island background */
+            background:
+                linear-gradient(to top, rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.8)),
+                radial-gradient(circle at 10% 0%, #e0f2fe 0, #0ea5e9 35%, #0f766e 70%, #022c22 100%);
+        }
+        .page {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 24px 16px 40px;
+            color: #e5e7eb;
+        }
+        h1 {
+            margin-top: 0;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h1 span.badge {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.7);
+            background: rgba(15, 23, 42, 0.75);
+        }
+        .world-card, .agent-card, .events-card {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 16px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+        .world-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 14px;
+            color: #cbd5f5;
+        }
+        .pill {
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.25);
+            color: #a5f3fc;
+            border: 1px solid rgba(45, 212, 191, 0.35);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        button {
+            background: linear-gradient(135deg, #0ea5e9, #22c55e);
+            color: #0b1120;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.4);
+        }
+        button.secondary {
+            background: transparent;
+            color: #e2e8f0;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            box-shadow: none;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        input[type="number"] {
+            width: 72px;
+            padding: 6px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.7);
+            background: rgba(15, 23, 42, 0.9);
+            color: #e5e7eb;
+            font-size: 13px;
+        }
+        .agent-main {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .agent-avatar {
+            width: 68px;
+            height: 68px;
+            border-radius: 999px;
+            background: radial-gradient(circle at 30% 10%, #e0f2fe, #22c55e 40%, #0f172a 85%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 700;
+            color: #020617;
+            box-shadow: 0 16px 40px rgba(56, 189, 248, 0.6);
+        }
+        .agent-details {
+            flex: 1;
+            min-width: 220px;
+        }
+        .agent-name {
+            font-weight: 600;
+            font-size: 18px;
+        }
+        .agent-role {
+            font-size: 13px;
+            color: #93c5fd;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-top: 2px;
+        }
+        .agent-location {
+            font-size: 13px;
+            color: #e5e7eb;
+            margin-top: 4px;
+        }
+        .thought {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            font-size: 14px;
+            position: relative;
+        }
+        .thought::before {
+            content: "";
+            position: absolute;
+            left: 14px;
+            bottom: -8px;
+            width: 14px;
+            height: 14px;
+            background: rgba(15, 23, 42, 0.9);
+            border-left: 1px solid rgba(148, 163, 184, 0.35);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+            transform: rotate(45deg);
+        }
+        .events-list {
+            max-height: 260px;
+            overflow-y: auto;
+            padding-right: 4px;
+            font-size: 13px;
+        }
+        .event-item {
+            margin-bottom: 8px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.7);
+        }
+        .event-ticker-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 10px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #eff6ff;
+            background: linear-gradient(90deg, #1d4ed8, #0ea5e9);
+        }
+        .event-ticker-bar .label {
+            font-weight: 700;
+            background: rgba(15, 23, 42, 0.3);
+            padding: 2px 6px;
+            border-radius: 999px;
+        }
+        .event-body {
+            padding: 8px 10px 10px;
+            background: rgba(15, 23, 42, 0.96);
+        }
+        .event-meta {
+            color: #93c5fd;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .event-text {
+            color: #e5e7eb;
+            margin-top: 2px;
+        }
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 6px;
+        }
+        .error {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #fecaca;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <h1>
+        Hello World
+        <span class="badge">Island · First life simulation</span>
+    </h1>
+    <p style="color:#e5e7eb;font-size:14px;margin-bottom:18px;">
+        A single conscious being opens its eyes on a remote island. Watch the world tick forward as it searches for any sign of other life.
+    </p>
+
+    <div class="world-card">
+        <div class="world-meta">
+            <div><span class="pill">WORLD</span></div>
+            <div>Tick: <span id="tick">0</span></div>
+            <div>Name: <span id="worldName">–</span></div>
+        </div>
+        <p id="worldDescription" style="margin-top:10px;font-size:14px;color:#e5e7eb;"></p>
+        <div class="controls">
+            <button id="btnStep">
+                ▶ Step
+            </button>
+            <label style="font-size:13px;display:flex;align-items:center;gap:6px;">
+                ticks:
+                <input id="stepCount" type="number" min="1" value="1">
+            </label>
+            <button id="btnAuto" class="secondary">
+                ▷ Auto-run
+            </button>
+            <button id="btnReset" class="secondary">
+                ⟳ Reset world
+            </button>
+            <span id="status" style="font-size:12px;color:#9ca3af;"></span>
+        </div>
+        <div id="error" class="error" style="display:none;"></div>
+    </div>
+
+    <div class="agent-card">
+        <div class="agent-main">
+            <div class="agent-avatar" id="agentInitials">A</div>
+            <div class="agent-details">
+                <div class="agent-name" id="agentName">–</div>
+                <div class="agent-role" id="agentRole">FIRST LIFE</div>
+                <div class="agent-location" id="agentLocation">–</div>
+                <div class="thought" id="agentThought">
+                    Waiting for the world state…
+                </div>
+            </div>
+        </div>
+        <div class="status-row">
+            <div>Memory entries: <span id="memoryCount">0</span></div>
+            <div>Last updated: <span id="lastUpdated">–</span></div>
+        </div>
+    </div>
+
+    <div class="events-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:13px;color:#e5e7eb;font-weight:500;">World events</span>
+            <span style="font-size:11px;color:#9ca3af;">Newest at bottom</span>
+        </div>
+        <div class="events-list" id="events"></div>
+    </div>
+</div>
+
+<script>
+    const tickEl = document.getElementById('tick');
+    const worldNameEl = document.getElementById('worldName');
+    const worldDescriptionEl = document.getElementById('worldDescription');
+    const agentInitialsEl = document.getElementById('agentInitials');
+    const agentNameEl = document.getElementById('agentName');
+    const agentRoleEl = document.getElementById('agentRole');
+    const agentLocationEl = document.getElementById('agentLocation');
+    const agentThoughtEl = document.getElementById('agentThought');
+    const memoryCountEl = document.getElementById('memoryCount');
+    const lastUpdatedEl = document.getElementById('lastUpdated');
+    const eventsEl = document.getElementById('events');
+    const statusEl = document.getElementById('status');
+    const errorEl = document.getElementById('error');
+
+    const btnStep = document.getElementById('btnStep');
+    const btnAuto = document.getElementById('btnAuto');
+    const btnReset = document.getElementById('btnReset');
+    const stepCountInput = document.getElementById('stepCount');
+
+    let autoInterval = null;
+
+    function setLoading(isLoading) {
+        btnStep.disabled = isLoading;
+        btnReset.disabled = isLoading;
+        btnAuto.disabled = false; // we manage separately
+        if (isLoading) {
+            statusEl.textContent = 'Updating world…';
+        } else {
+            statusEl.textContent = '';
+        }
+    }
+
+    function setError(message) {
+        if (message) {
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        } else {
+            errorEl.textContent = '';
+            errorEl.style.display = 'none';
+        }
+    }
+
+    function initials(name) {
+        if (!name) return '?';
+        return name
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(p => p[0].toUpperCase())
+            .join('');
+    }
+
+    function formatTime(d) {
+        return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+    }
+
+    function renderState(state) {
+        if (!state) return;
+        tickEl.textContent = state.tick;
+        worldNameEl.textContent = state.worldName || '–';
+        worldDescriptionEl.textContent = state.description || '';
+
+        const a = state.pioneer;
+        if (a) {
+            agentInitialsEl.textContent = initials(a.name);
+            agentNameEl.textContent = a.name || '–';
+            agentRoleEl.textContent = (a.role || 'FIRST_LIFE').toString().replace(/_/g, ' ');
+            agentLocationEl.textContent = a.location || 'Unknown location';
+            agentThoughtEl.textContent = a.currentThought || '…';
+            memoryCountEl.textContent = (a.memory && a.memory.length) || 0;
+        } else {
+            agentNameEl.textContent = 'No pioneer agent';
+            agentInitialsEl.textContent = '?';
+            agentThoughtEl.textContent = 'World has no conscious life yet.';
+        }
+
+        if (Array.isArray(state.events)) {
+            eventsEl.innerHTML = '';
+            state.events.forEach(ev => {
+                const item = document.createElement('div');
+                item.className = 'event-item';
+                const bar = document.createElement('div');
+                bar.className = 'event-ticker-bar';
+                const label = document.createElement('span');
+                label.className = 'label';
+                label.textContent = 'WORLD NEWS';
+                const meta = document.createElement('span');
+                meta.className = 'event-meta';
+                const ts = ev.timestamp ? new Date(ev.timestamp) : null;
+                meta.textContent = 'Tick ' + ev.tick + (ts ? ' · ' + formatTime(ts) : '');
+                bar.appendChild(label);
+                bar.appendChild(meta);
+                const body = document.createElement('div');
+                body.className = 'event-body';
+                const text = document.createElement('div');
+                text.className = 'event-text';
+                text.textContent = ev.description;
+                body.appendChild(text);
+                item.appendChild(bar);
+                item.appendChild(body);
+                eventsEl.appendChild(item);
+            });
+            eventsEl.scrollTop = eventsEl.scrollHeight;
+        }
+
+        lastUpdatedEl.textContent = formatTime(new Date());
+    }
+
+    async function fetchState() {
+        try {
+            setError('');
+            const res = await fetch('/api/world/state');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const json = await res.json();
+            renderState(json);
+        } catch (e) {
+            console.error(e);
+            setError('Failed to load world state.');
+        }
+    }
+
+    async function callStep() {
+        const ticks = Math.max(1, parseInt(stepCountInput.value || '1', 10));
+        try {
+            setLoading(true);
+            setError('');
+            const params = new URLSearchParams({ticks: String(ticks)});
+            const res = await fetch('/api/world/step?' + params.toString(), {
+                method: 'POST'
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const json = await res.json();
+            renderState(json);
+        } catch (e) {
+            console.error(e);
+            setError('Failed to advance the world.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function callReset() {
+        try {
+            setLoading(true);
+            setError('');
+            const res = await fetch('/api/world/reset', {method: 'POST'});
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const json = await res.json();
+            renderState(json);
+        } catch (e) {
+            console.error(e);
+            setError('Failed to reset the world.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function toggleAuto() {
+        if (autoInterval) {
+            clearInterval(autoInterval);
+            autoInterval = null;
+            btnAuto.textContent = '▷ Auto-run';
+            statusEl.textContent = '';
+            return;
+        }
+        autoInterval = setInterval(callStep, 1500);
+        btnAuto.textContent = '❚❚ Stop auto';
+        statusEl.textContent = 'Auto-run every ~1.5s';
+    }
+
+    btnStep.addEventListener('click', callStep);
+    btnReset.addEventListener('click', callReset);
+    btnAuto.addEventListener('click', toggleAuto);
+
+    // Initial load
+    fetchState();
+</script>
+</body>
+</html>
+
