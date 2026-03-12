@@ -219,6 +219,87 @@
             font-size: 12px;
             color: #fecaca;
         }
+        .world-map-card {
+            background: rgba(15, 23, 42, 0.95);
+            border-radius: 16px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+        .world-map-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #e5e7eb;
+        }
+        .map-wrap {
+            position: relative;
+            display: inline-block;
+            border: 2px solid rgba(148, 163, 184, 0.4);
+            border-radius: 10px;
+            overflow: hidden;
+            background: #0f172a;
+        }
+        .map-grid {
+            display: grid;
+            gap: 1px;
+            background: rgba(30, 58, 138, 0.5);
+        }
+        .map-cell {
+            width: 22px;
+            height: 22px;
+            box-sizing: border-box;
+        }
+        .map-cell.terrain-WATER { background: #0c4a6e; }
+        .map-cell.terrain-SAND { background: #e7d5a8; }
+        .map-cell.terrain-PALM_GROVE { background: #166534; }
+        .map-cell.terrain-ROCKY_CLIFF { background: #57534e; }
+        .map-cell.terrain-LAGOON_EDGE { background: #0d9488; }
+        .map-cell.terrain-GRASS { background: #4d7c0f; }
+        .map-cell.path-pioneer { box-shadow: inset 0 0 0 2px rgba(56, 189, 248, 0.7); }
+        .map-cell.path-pet { box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.7); }
+        .map-cell.path-doctor { box-shadow: inset 0 0 0 2px rgba(34, 197, 94, 0.7); }
+        .map-cell.path-psychologist { box-shadow: inset 0 0 0 2px rgba(168, 85, 247, 0.7); }
+        .map-cell.path-judge { box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.7); }
+        .map-cell.interaction-cell { box-shadow: inset 0 0 0 2px #fbbf24; background: rgba(251, 191, 36, 0.3) !important; }
+        .map-agents-layer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            pointer-events: none;
+        }
+        .map-agent-marker {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            color: #0f172a;
+            border: 2px solid rgba(15, 23, 42, 0.8);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        .map-agent-marker.pioneer { background: #38bdf8; }
+        .map-agent-marker.pet { background: #fbbf24; }
+        .map-agent-marker.doctor { background: #22c55e; }
+        .map-agent-marker.psychologist { background: #a855f7; }
+        .map-agent-marker.judge { background: #ef4444; }
+        .map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        .map-legend span { display: inline-flex; align-items: center; gap: 4px; }
+        .map-legend .swatch { width: 12px; height: 12px; border-radius: 2px; }
     </style>
 </head>
 <body>
@@ -257,6 +338,48 @@
         <div id="error" class="error" style="display:none;"></div>
     </div>
 
+    <div class="world-card" style="margin-top:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:13px;color:#e5e7eb;font-weight:500;">World dashboard</span>
+            <span style="font-size:11px;color:#9ca3af;">High-level island metrics</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:13px;">
+            <div style="flex:1;min-width:140px;">
+                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Population</div>
+                <div style="font-size:20px;font-weight:600;" id="populationCount">0</div>
+            </div>
+            <div style="flex:1;min-width:140px;">
+                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Conflicts</div>
+                <div style="font-size:20px;font-weight:600;" id="conflictCount">0</div>
+            </div>
+            <div style="flex:1;min-width:160px;">
+                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Hallucination flags</div>
+                <div style="font-size:20px;font-weight:600;" id="hallucinationRate">0</div>
+                <div style="font-size:11px;color:#9ca3af;" id="hallucinationAgents">0 agents flagged</div>
+            </div>
+            <div style="flex:1;min-width:140px;">
+                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Alliances</div>
+                <div style="font-size:20px;font-weight:600;" id="alliancesCount">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="world-map-card">
+        <h3>World map · Island terrain, agents & paths</h3>
+        <div class="map-wrap" id="mapWrap">
+            <div class="map-grid" id="mapGrid"></div>
+            <div class="map-agents-layer" id="mapAgentsLayer"></div>
+        </div>
+        <div class="map-legend" id="mapLegend">
+            <span><span class="swatch" style="background:#0c4a6e"></span> Water</span>
+            <span><span class="swatch" style="background:#e7d5a8"></span> Sand</span>
+            <span><span class="swatch" style="background:#166534"></span> Palm</span>
+            <span><span class="swatch" style="background:#4d7c0f"></span> Grass</span>
+            <span><span class="swatch" style="background:#0d9488"></span> Lagoon</span>
+            <span><span class="swatch" style="background:#57534e"></span> Cliff</span>
+        </div>
+    </div>
+
     <div class="agent-card">
         <div class="agent-main">
             <div class="agent-avatar" id="agentInitials">A</div>
@@ -272,6 +395,24 @@
         <div class="status-row">
             <div>Memory entries: <span id="memoryCount">0</span></div>
             <div>Last updated: <span id="lastUpdated">–</span></div>
+        </div>
+    </div>
+
+    <div class="agent-card">
+        <div class="agent-main">
+            <div class="agent-avatar" id="petInitials">B</div>
+            <div class="agent-details">
+                <div class="agent-name" id="petName">–</div>
+                <div class="agent-role" id="petRole">COMPANION</div>
+                <div class="agent-location" id="petLocation">–</div>
+                <div class="thought" id="petThought">
+                    Waiting to see what Eos does…
+                </div>
+            </div>
+        </div>
+        <div class="status-row">
+            <div>Memory entries: <span id="petMemoryCount">0</span></div>
+            <div></div>
         </div>
     </div>
 
@@ -298,6 +439,19 @@
     const eventsEl = document.getElementById('events');
     const statusEl = document.getElementById('status');
     const errorEl = document.getElementById('error');
+
+    const populationCountEl = document.getElementById('populationCount');
+    const conflictCountEl = document.getElementById('conflictCount');
+    const hallucinationRateEl = document.getElementById('hallucinationRate');
+    const hallucinationAgentsEl = document.getElementById('hallucinationAgents');
+    const alliancesCountEl = document.getElementById('alliancesCount');
+
+    const petInitialsEl = document.getElementById('petInitials');
+    const petNameEl = document.getElementById('petName');
+    const petRoleEl = document.getElementById('petRole');
+    const petLocationEl = document.getElementById('petLocation');
+    const petThoughtEl = document.getElementById('petThought');
+    const petMemoryCountEl = document.getElementById('petMemoryCount');
 
     const btnStep = document.getElementById('btnStep');
     const btnAuto = document.getElementById('btnAuto');
@@ -347,6 +501,31 @@
         worldNameEl.textContent = state.worldName || '–';
         worldDescriptionEl.textContent = state.description || '';
 
+        // Dashboard metrics
+        let population = 0;
+        if (state.pioneer) population++;
+        if (state.companion) population++;
+        if (state.doctor) population++;
+        if (state.psychologist) population++;
+        if (state.judge) population++;
+        populationCountEl.textContent = population;
+
+        const conflicts = Array.isArray(state.conflictLog) ? state.conflictLog.length : 0;
+        conflictCountEl.textContent = conflicts;
+
+        const scores = state.hallucinationScores || {};
+        const agentIds = Object.keys(scores);
+        let totalFlags = 0;
+        agentIds.forEach(id => {
+            const v = scores[id];
+            if (typeof v === 'number') totalFlags += v;
+        });
+        hallucinationRateEl.textContent = totalFlags;
+        hallucinationAgentsEl.textContent = agentIds.length + ' agent' + (agentIds.length === 1 ? '' : 's') + ' flagged';
+
+        const alliances = Array.isArray(state.alliances) ? state.alliances.length : 0;
+        alliancesCountEl.textContent = alliances;
+
         const a = state.pioneer;
         if (a) {
             agentInitialsEl.textContent = initials(a.name);
@@ -359,6 +538,20 @@
             agentNameEl.textContent = 'No pioneer agent';
             agentInitialsEl.textContent = '?';
             agentThoughtEl.textContent = 'World has no conscious life yet.';
+        }
+
+        const pet = state.companion;
+        if (pet) {
+            petInitialsEl.textContent = initials(pet.name);
+            petNameEl.textContent = pet.name || '–';
+            petRoleEl.textContent = (pet.role || 'PET_DOG').toString().replace(/_/g, ' ');
+            petLocationEl.textContent = pet.location || 'Near Eos';
+            petThoughtEl.textContent = pet.currentThought || '…';
+            petMemoryCountEl.textContent = (pet.memory && pet.memory.length) || 0;
+        } else {
+            petNameEl.textContent = 'No companion';
+            petInitialsEl.textContent = '?';
+            petThoughtEl.textContent = 'The island is quiet, without even a pet.';
         }
 
         if (Array.isArray(state.events)) {
@@ -391,6 +584,98 @@
         }
 
         lastUpdatedEl.textContent = formatTime(new Date());
+        renderMap(state);
+    }
+
+    const CELL_SIZE = 22;
+    const GAP = 1;
+    const STEP = CELL_SIZE + GAP;
+
+    function roleKey(agent) {
+        if (!agent || !agent.role) return '';
+        const r = agent.role.toString();
+        if (r === 'FIRST_LIFE') return 'pioneer';
+        if (r === 'PET_DOG') return 'pet';
+        if (r === 'DOCTOR') return 'doctor';
+        if (r === 'PSYCHOLOGIST') return 'psychologist';
+        if (r === 'JUDGE') return 'judge';
+        return '';
+    }
+
+    function renderMap(state) {
+        const gridEl = document.getElementById('mapGrid');
+        const layerEl = document.getElementById('mapAgentsLayer');
+        const wrapEl = document.getElementById('mapWrap');
+        if (!gridEl || !layerEl || !wrapEl) return;
+
+        const terrain = state.terrain;
+        const w = state.gridWidth || (terrain && terrain[0] && terrain[0].length) || 14;
+        const h = state.gridHeight || (terrain && terrain.length) || 10;
+
+        gridEl.style.gridTemplateColumns = `repeat(${w}, ${CELL_SIZE}px)`;
+        gridEl.style.gridTemplateRows = `repeat(${h}, ${CELL_SIZE}px)`;
+        gridEl.innerHTML = '';
+
+        const pathCells = {};
+        const agents = [
+            { a: state.pioneer, key: 'pioneer' },
+            { a: state.companion, key: 'pet' },
+            { a: state.doctor, key: 'doctor' },
+            { a: state.psychologist, key: 'psychologist' },
+            { a: state.judge, key: 'judge' }
+        ].filter(x => x.a);
+
+        agents.forEach(({ a, key }) => {
+            const path = a.path;
+            if (Array.isArray(path)) {
+                path.forEach(p => {
+                    const px = p.x != null ? p.x : p[0];
+                    const py = p.y != null ? p.y : p[1];
+                    const k = px + ',' + py;
+                    if (!pathCells[k]) pathCells[k] = [];
+                    if (!pathCells[k].includes(key)) pathCells[k].push(key);
+                });
+            }
+        });
+
+        const interactionCells = {};
+        agents.forEach(({ a }) => {
+            const px = a.positionX != null ? a.positionX : 0;
+            const py = a.positionY != null ? a.positionY : 0;
+            const k = px + ',' + py;
+            interactionCells[k] = (interactionCells[k] || 0) + 1;
+        });
+        Object.keys(interactionCells).forEach(k => { if (interactionCells[k] < 2) delete interactionCells[k]; });
+
+        for (let y = 0; y < h; y++) {
+            const row = terrain && terrain[y];
+            for (let x = 0; x < w; x++) {
+                const cell = document.createElement('div');
+                cell.className = 'map-cell';
+                const t = (row && row[x]) || 'WATER';
+                cell.classList.add('terrain-' + t);
+                const pk = x + ',' + y;
+                (pathCells[pk] || []).forEach(k => cell.classList.add('path-' + k));
+                if (interactionCells[pk]) cell.classList.add('interaction-cell');
+                gridEl.appendChild(cell);
+            }
+        }
+
+        layerEl.style.width = (w * STEP - GAP) + 'px';
+        layerEl.style.height = (h * STEP - GAP) + 'px';
+        layerEl.innerHTML = '';
+
+        agents.forEach(({ a, key }) => {
+            const px = a.positionX != null ? a.positionX : 0;
+            const py = a.positionY != null ? a.positionY : 0;
+            const marker = document.createElement('div');
+            marker.className = 'map-agent-marker ' + key;
+            marker.textContent = (a.name || '?').charAt(0).toUpperCase();
+            marker.title = (a.name || '') + ' (' + (a.role || '').replace(/_/g, ' ') + ')';
+            marker.style.left = (px * STEP + (STEP - 18) / 2) + 'px';
+            marker.style.top = (py * STEP + (STEP - 18) / 2) + 'px';
+            layerEl.appendChild(marker);
+        });
     }
 
     async function fetchState() {
