@@ -1,6 +1,6 @@
 # Tiramisu · Hello World Island Simulation
 
-A **multi-agent island simulation** built with Java and Spring Boot. The project simulates a small world (Island-1) where agents with different roles—first life, pet, doctor, psychologist, judge—move on a grid, record thoughts and events, and are observed through a web UI. The design is prepared for pluggable **LLM brains** so each agent can later be driven by a different language model.
+A **multi-agent island simulation** built with Java and Spring Boot. The project simulates a small world (Island-1) where agents with different roles—first life, pet, explorer, doctor, psychologist, judge—move on a grid, record thoughts and events, and are observed through a web UI. The judge detects and logs **conflicts** when two agents occupy the same cell. The design is prepared for pluggable **LLM brains** so each agent can later be driven by a different language model.
 
 ---
 
@@ -8,9 +8,9 @@ A **multi-agent island simulation** built with Java and Spring Boot. The project
 
 - **World model**: A 14×10 grid with terrain (water, sand, palm grove, grass, lagoon, rocky cliff). Time advances in discrete **ticks**.
 - **Agents**:
-  - **Eos** (first life) and **Bony** (dog) wander the island each tick; their “brains” produce a thought and an optional movement. Their trails are recorded as paths.
-  - **Dr. Selim** (doctor), **Dr. Mira** (psychologist), and **Arbitra** (judge) observe the world: the doctor tracks hallucination-style indicators, the psychologist keeps behaviour notes per agent, and the judge keeps a conflict log (and an alliances list for future use).
-- **Brains**: Each agent has an `AgentBrain` (e.g. `RuleBasedPioneerBrain`, `RuleBasedPetBrain`). The interface returns an `AgentDecision` (thought, world-event text, optional movement). This makes it easy to **swap in LLM-backed brains** later without changing the rest of the simulation.
+  - **Eos** (first life), **Bony** (dog), and **Nova** (explorer) wander the island each tick; their “brains” produce a thought and an optional movement. Their trails are recorded as paths.
+  - **Dr. Selim** (doctor), **Dr. Mira** (psychologist), and **Arbitra** (judge) observe the world: the doctor tracks hallucination-style indicators, the psychologist keeps behaviour notes per agent, and the judge **detects conflicts** (when two agents share the same cell) and records them in the conflict log. An alliances list is available for future use.
+- **Brains**: Each agent has an `AgentBrain` (e.g. `RuleBasedPioneerBrain`, `RuleBasedPetBrain`, `RuleBasedExplorerBrain`). The interface returns an `AgentDecision` (thought, world-event text, optional movement). This makes it easy to **swap in LLM-backed brains** later without changing the rest of the simulation.
 - **Web UI** (`/world.html`): Dashboard (population, conflicts, hallucination flags, alliances), a **world map** (terrain, agent positions, movement paths, interaction highlights when two agents share a cell), agent cards with thoughts and memory counts, and a news-style event feed. You can step the simulation or run it automatically.
 
 ---
@@ -70,7 +70,7 @@ src/main/java/com/example/demo/
     ├── Agent.java                # Agent with role, location, thought, memory, position, path
     ├── AgentBrain.java           # Interface: decide(WorldState, Agent) → AgentDecision
     ├── AgentDecision.java        # Thought + event text + optional (deltaX, deltaY)
-    ├── AgentRole.java            # FIRST_LIFE, PET_DOG, DOCTOR, PSYCHOLOGIST, JUDGE
+    ├── AgentRole.java            # FIRST_LIFE, PET_DOG, EXPLORER, DOCTOR, PSYCHOLOGIST, JUDGE
     ├── Position.java             # (x, y) for path and grid
     ├── TerrainType.java          # WATER, SAND, PALM_GROVE, etc.
     ├── WorldEvent.java           # Tick + timestamp + description
@@ -79,6 +79,7 @@ src/main/java/com/example/demo/
     ├── WorldController.java      # REST: /api/world/state, /reset, /step
     ├── RuleBasedPioneerBrain.java
     ├── RuleBasedPetBrain.java
+    ├── RuleBasedExplorerBrain.java
     ├── RuleBasedDoctorBrain.java
     ├── RuleBasedPsychologistBrain.java
     └── RuleBasedJudgeBrain.java
@@ -112,11 +113,11 @@ src/test/java/com/example/demo/
 
 The repository includes a **GitLab CI** pipeline (`.gitlab-ci.yml`):
 
-- **build**: `./mvnw clean package -DskipTests`, stores JARs.
-- **test**: `./mvnw test` (depends on build).
+- **build**: `mvn clean package -DskipTests`, stores JARs.
+- **test**: `mvn test` (depends on build).
 - **deploy**: Manual job; placeholder for your deployment (e.g. container or server).
 
-Runners use the Maven + Eclipse Temurin 8 image; the pipeline caches `.m2/repository` to speed up builds.
+Runners use the Maven + Eclipse Temurin 8 image (Maven from the image, not the wrapper); the pipeline caches `.m2/repository` to speed up builds.
 
 ---
 
@@ -124,7 +125,7 @@ Runners use the Maven + Eclipse Temurin 8 image; the pipeline caches `.m2/reposi
 
 - **LLM brains**: Implement `AgentBrain` with a class that calls your LLM API, maps the response to a thought + event + optional `(deltaX, deltaY)`, and returns an `AgentDecision`. In `WorldService`, assign that brain to the desired agent(s) instead of the rule-based brain.
 - **New roles**: Add an enum value to `AgentRole`, create an agent and a brain (rule-based or LLM), register them in `WorldService` and in the UI state/dashboard/map if needed.
-- **Conflicts / alliances**: The judge and the world state already have `conflictLog` and `alliances`; add logic in the judge (or elsewhere) to detect conflicts and record alliances, and surface them in the UI.
+- **Conflicts / alliances**: The judge **detects conflicts** when two agents occupy the same grid cell and appends entries to `conflictLog`; the dashboard shows the count. Add logic elsewhere to record **alliances** (e.g. when two agents cooperate) and surface them in the UI.
 
 ---
 
