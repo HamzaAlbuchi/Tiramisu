@@ -1,9 +1,9 @@
-# Build stage
-FROM maven:3.8-eclipse-temurin-8-alpine AS builder
+# Build stage (Debian-based image for reliable Maven/dependency resolution)
+FROM maven:3.8-eclipse-temurin-8 AS builder
 WORKDIR /build
 
-COPY pom.xml .
-COPY src src
+# Copy full project so Maven has expected layout; .dockerignore excludes target, .git, etc.
+COPY . .
 
 RUN mvn -B package -DskipTests
 
