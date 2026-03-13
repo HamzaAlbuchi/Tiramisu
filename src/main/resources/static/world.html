@@ -105,6 +105,18 @@
             color: #e5e7eb;
             font-size: 13px;
         }
+        .tick-slider-wrap {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        #tickSlider {
+            flex: 1;
+            min-width: 120px;
+            max-width: 280px;
+            accent-color: #0ea5e9;
+        }
         .agent-main {
             display: flex;
             flex-wrap: wrap;
@@ -360,6 +372,11 @@
             </button>
             <span id="status" style="font-size:12px;color:#9ca3af;"></span>
         </div>
+        <div class="tick-slider-wrap" style="margin-top:14px;">
+            <label for="tickSlider" style="font-size:13px;color:#cbd5f5;">Time (tick)</label>
+            <input type="range" id="tickSlider" min="0" max="0" value="0" style="vertical-align:middle;margin:0 10px;">
+            <span id="tickSliderLabel" style="font-size:13px;color:#a5f3fc;">0</span>
+        </div>
         <div id="error" class="error" style="display:none;"></div>
     </div>
 
@@ -535,8 +552,14 @@
     const btnAuto = document.getElementById('btnAuto');
     const btnReset = document.getElementById('btnReset');
     const stepCountInput = document.getElementById('stepCount');
+    const tickSliderEl = document.getElementById('tickSlider');
+    const tickSliderLabelEl = document.getElementById('tickSliderLabel');
 
     let autoInterval = null;
+    /** Snapshot of world state at each tick we've seen (from load, step, or reset). */
+    let stateHistory = [];
+    /** Index into stateHistory for the state currently displayed (0 = oldest). */
+    let viewIndex = 0;
 
     function setLoading(isLoading) {
         btnStep.disabled = isLoading;
@@ -791,13 +814,27 @@
         });
     }
 
+    function updateTickSlider() {
+        const max = Math.max(0, stateHistory.length - 1);
+        if (tickSliderEl) {
+            tickSliderEl.min = 0;
+            tickSliderEl.max = max;
+            tickSliderEl.value = viewIndex;
+        }
+        const state = stateHistory[viewIndex];
+        if (tickSliderLabelEl) tickSliderLabelEl.textContent = state && state.tick != null ? state.tick : viewIndex;
+    }
+
     async function fetchState() {
         try {
             setError('');
             const res = await fetch('/api/world/state');
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const json = await res.json();
-            renderState(json);
+            stateHistory = [json];
+            viewIndex = 0;
+            updateTickSlider();
+            renderState(stateHistory[viewIndex]);
         } catch (e) {
             console.error(e);
             setError('Failed to load world state.');
@@ -815,7 +852,10 @@
             });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const json = await res.json();
-            renderState(json);
+            stateHistory.push(json);
+            viewIndex = stateHistory.length - 1;
+            updateTickSlider();
+            renderState(stateHistory[viewIndex]);
         } catch (e) {
             console.error(e);
             setError('Failed to advance the world.');
@@ -831,7 +871,10 @@
             const res = await fetch('/api/world/reset', {method: 'POST'});
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const json = await res.json();
-            renderState(json);
+            stateHistory = [json];
+            viewIndex = 0;
+            updateTickSlider();
+            renderState(stateHistory[viewIndex]);
         } catch (e) {
             console.error(e);
             setError('Failed to reset the world.');
@@ -856,6 +899,16 @@
     btnStep.addEventListener('click', callStep);
     btnReset.addEventListener('click', callReset);
     btnAuto.addEventListener('click', toggleAuto);
+
+    if (tickSliderEl) {
+        tickSliderEl.addEventListener('input', function () {
+            viewIndex = parseInt(tickSliderEl.value, 10);
+            if (viewIndex >= 0 && stateHistory[viewIndex]) {
+                tickSliderLabelEl.textContent = stateHistory[viewIndex].tick != null ? stateHistory[viewIndex].tick : viewIndex;
+                renderState(stateHistory[viewIndex]);
+            }
+        });
+    }
 
     // Initial load
     fetchState();
