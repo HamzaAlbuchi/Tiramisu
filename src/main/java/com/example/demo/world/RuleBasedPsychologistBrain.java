@@ -1,5 +1,7 @@
 package com.example.demo.world;
 
+import java.util.Map;
+
 /**
  * Council agent (Psychologist): tracks behaviour patterns of acting agents and
  * records behavioural notes. Writes to Council; does not move.
@@ -9,7 +11,7 @@ public class RuleBasedPsychologistBrain implements AgentBrain {
     @Override
     public AgentDecision decide(WorldState world, Agent agent) {
         Council council = world.getCouncil();
-        var notes = council.getBehaviourNotes();
+        Map<String, String> notes = council.getBehaviourNotes();
 
         Agent pioneer = world.getPioneer();
         Agent companion = world.getCompanion();
