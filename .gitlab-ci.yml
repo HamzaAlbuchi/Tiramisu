@@ -37,8 +37,8 @@ test:
 deploy:
   stage: deploy
   environment: production
+  when: manual
   script:
     - echo "Deploying application..."
-    - echo "JAR built in build stage: target/demo-*.jar"
-    - echo "Configure your deployment (e.g. Kubernetes, Docker, or GitLab Pages) here."
-  when: manual
+    - echo "JAR built in build stage (see job artifacts)."
+    - echo "Configure your deployment (Kubernetes, Docker, etc.) here."
