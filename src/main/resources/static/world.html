@@ -2,311 +2,348 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Hello World · Island Simulation</title>
+    <title>Tiramisu · Agent World</title>
     <style>
+        /* ---- Futuristic AI dashboard theme ---- */
+        :root {
+            --bg-dark: #0b0f14;
+            --bg-panel: rgba(11, 15, 20, 0.85);
+            --glass-border: rgba(6, 182, 212, 0.25);
+            --accent-cyan: #22d3ee;
+            --accent-teal: #14b8a6;
+            --accent-purple: #a78bfa;
+            --text-primary: #e2e8f0;
+            --text-muted: #94a3b8;
+            --glow-cyan: rgba(34, 211, 238, 0.4);
+            --glow-teal: rgba(20, 184, 166, 0.35);
+            --grid-line: rgba(6, 182, 212, 0.12);
+        }
+
+        * { box-sizing: border-box; }
+
         body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             margin: 0;
             padding: 0;
             min-height: 100vh;
-            color: #0f172a;
-            /* Tropical island background */
-            background:
-                linear-gradient(to top, rgba(15, 23, 42, 0.35), rgba(15, 23, 42, 0.8)),
-                radial-gradient(circle at 10% 0%, #e0f2fe 0, #0ea5e9 35%, #0f766e 70%, #022c22 100%);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            background-image:
+                linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+            background-size: 24px 24px;
         }
-        .page {
-            max-width: 960px;
+
+        /* Dashboard: root layout container. Extend with more sections as needed. */
+        .dashboard {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 24px 16px 40px;
-            color: #e5e7eb;
+            padding: 12px 16px 24px;
         }
-        h1 {
-            margin-top: 0;
-            font-weight: 600;
-            letter-spacing: 0.04em;
-            font-size: 28px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+
+        /* Top bar: title, live metrics, and simulation controls. */
+        .top-bar {
+            display: grid;
+            gap: 12px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
         }
-        h1 span.badge {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            padding: 4px 10px;
-            border-radius: 999px;
-            border: 1px solid rgba(148, 163, 184, 0.7);
-            background: rgba(15, 23, 42, 0.75);
+
+        .top-bar-title {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 20px var(--glow-cyan);
+            margin: 0;
         }
-        .world-card, .agent-card, .events-card {
-            background: rgba(15, 23, 42, 0.9);
-            border-radius: 16px;
-            padding: 16px 18px;
-            margin-bottom: 16px;
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
-            border: 1px solid rgba(148, 163, 184, 0.25);
-        }
-        .world-meta {
+
+        .top-bar-metrics {
             display: flex;
             flex-wrap: wrap;
-            gap: 16px;
-            font-size: 14px;
-            color: #cbd5f5;
+            gap: 20px;
+            align-items: center;
         }
-        .pill {
-            padding: 4px 10px;
-            border-radius: 999px;
-            background: rgba(15, 118, 110, 0.25);
-            color: #a5f3fc;
-            border: 1px solid rgba(45, 212, 191, 0.35);
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-        .controls {
+
+        .metric {
             display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 10px;
-            margin-top: 12px;
-        }
-        button {
-            background: linear-gradient(135deg, #0ea5e9, #22c55e);
-            color: #0b1120;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 999px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
+            align-items: baseline;
             gap: 6px;
-            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.4);
         }
-        button.secondary {
+
+        .metric-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            min-width: 1.5em;
+            transition: transform 0.2s ease, color 0.2s ease;
+        }
+
+        .metric-value.bump {
+            animation: metricBump 0.3s ease;
+        }
+
+        @keyframes metricBump {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); color: var(--accent-teal); }
+            100% { transform: scale(1); }
+        }
+
+        .top-bar-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .top-bar-controls button {
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--glass-border);
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--accent-cyan);
+            transition: box-shadow 0.2s, background 0.2s;
+        }
+
+        .top-bar-controls button:hover:not(:disabled) {
+            background: rgba(6, 182, 212, 0.25);
+            box-shadow: 0 0 16px var(--glow-cyan);
+        }
+
+        .top-bar-controls button.secondary {
             background: transparent;
-            color: #e2e8f0;
-            border: 1px solid rgba(148, 163, 184, 0.6);
-            box-shadow: none;
+            color: var(--text-primary);
         }
-        button:disabled {
+
+        .top-bar-controls button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            box-shadow: none;
         }
-        input[type="number"] {
-            width: 72px;
+
+        .top-bar-controls input[type="number"] {
+            width: 56px;
             padding: 6px 8px;
-            border-radius: 999px;
-            border: 1px solid rgba(148, 163, 184, 0.7);
-            background: rgba(15, 23, 42, 0.9);
-            color: #e5e7eb;
+            border-radius: 6px;
+            border: 1px solid var(--glass-border);
+            background: rgba(11, 15, 20, 0.9);
+            color: var(--text-primary);
             font-size: 13px;
         }
+
         .tick-slider-wrap {
             display: flex;
             align-items: center;
+            gap: 8px;
             flex-wrap: wrap;
-            gap: 6px;
         }
-        #tickSlider {
+
+        .tick-slider-wrap input[type="range"] {
             flex: 1;
-            min-width: 120px;
-            max-width: 280px;
-            accent-color: #0ea5e9;
+            min-width: 100px;
+            max-width: 240px;
+            accent-color: var(--accent-cyan);
         }
+
+        .error {
+            font-size: 12px;
+            color: #f87171;
+        }
+
+        /* Main section: 3-column grid — Agents (left), World map (center), Council (right). */
+        .main-grid {
+            display: grid;
+            grid-template-columns: minmax(240px, 1fr) minmax(320px, 2fr) minmax(260px, 1fr);
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto auto;
+            }
+        }
+
+        /* Reusable glass card for panels. */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            margin: 0 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--grid-line);
+        }
+
+        /* Left column: agent cards (name, role, thought, memory). */
+        .agents-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .agent-card {
+            background: rgba(11, 15, 20, 0.6);
+            border: 1px solid var(--grid-line);
+            border-radius: 10px;
+            padding: 12px 14px;
+            transition: box-shadow 0.2s;
+        }
+
+        .agent-card:hover {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+        }
+
         .agent-main {
             display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
+            gap: 12px;
         }
+
         .agent-avatar {
-            width: 68px;
-            height: 68px;
-            border-radius: 999px;
-            background: radial-gradient(circle at 30% 10%, #e0f2fe, #22c55e 40%, #0f172a 85%);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-teal));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 26px;
+            font-size: 16px;
             font-weight: 700;
-            color: #020617;
-            box-shadow: 0 16px 40px rgba(56, 189, 248, 0.6);
+            color: var(--bg-dark);
+            flex-shrink: 0;
         }
+
         .agent-details {
             flex: 1;
-            min-width: 220px;
+            min-width: 0;
         }
+
         .agent-name {
             font-weight: 600;
-            font-size: 18px;
+            font-size: 14px;
+            color: var(--text-primary);
         }
+
         .agent-role {
-            font-size: 13px;
-            color: #93c5fd;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.08em;
+            color: var(--accent-teal);
             margin-top: 2px;
         }
+
         .agent-location {
-            font-size: 13px;
-            color: #e5e7eb;
+            font-size: 11px;
+            color: var(--text-muted);
             margin-top: 4px;
         }
+
         .thought {
             margin-top: 10px;
             padding: 10px 12px;
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            font-size: 14px;
-            position: relative;
-        }
-        .thought::before {
-            content: "";
-            position: absolute;
-            left: 14px;
-            bottom: -8px;
-            width: 14px;
-            height: 14px;
-            background: rgba(15, 23, 42, 0.9);
-            border-left: 1px solid rgba(148, 163, 184, 0.35);
-            border-bottom: 1px solid rgba(148, 163, 184, 0.35);
-            transform: rotate(45deg);
-        }
-        .events-list {
-            max-height: 260px;
-            overflow-y: auto;
-            padding-right: 4px;
-            font-size: 13px;
-        }
-        .event-item {
-            margin-bottom: 8px;
             border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.7);
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid var(--accent-purple);
+            font-size: 12px;
+            color: var(--text-primary);
+            line-height: 1.4;
         }
-        .event-ticker-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 4px 10px;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: #eff6ff;
-            background: linear-gradient(90deg, #1d4ed8, #0ea5e9);
-        }
-        .event-ticker-bar .label {
-            font-weight: 700;
-            background: rgba(15, 23, 42, 0.3);
-            padding: 2px 6px;
-            border-radius: 999px;
-        }
-        .event-body {
-            padding: 8px 10px 10px;
-            background: rgba(15, 23, 42, 0.96);
-        }
-        .event-meta {
-            color: #93c5fd;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-        .event-text {
-            color: #e5e7eb;
-            margin-top: 2px;
-        }
+
         .status-row {
             display: flex;
             justify-content: space-between;
-            font-size: 12px;
-            color: #9ca3af;
-            margin-top: 6px;
-        }
-        .error {
-            margin-top: 8px;
-            font-size: 12px;
-            color: #fecaca;
-        }
-        .council-card { border-left: 4px solid #22c55e; }
-        .council-panel { border-left: 4px solid #a855f7; }
-        .council-section { margin-bottom: 14px; }
-        .council-section:last-child { margin-bottom: 0; }
-        .council-section-title {
             font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #93c5fd;
-            margin-bottom: 6px;
+            color: var(--text-muted);
+            margin-top: 8px;
         }
-        .council-list {
-            max-height: 120px;
-            overflow-y: auto;
-            font-size: 12px;
-            color: #e5e7eb;
-            padding: 8px;
-            background: rgba(15, 23, 42, 0.6);
-            border-radius: 8px;
+
+        /* Center column: world map — grid, agents, trails, interaction highlight. */
+        .world-map {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
         }
-        .council-list .item { padding: 4px 0; border-bottom: 1px solid rgba(148, 163, 184, 0.2); }
-        .council-list .item:last-child { border-bottom: none; }
-        .council-list .empty { color: #64748b; font-style: italic; }
-        .world-map-card {
-            background: rgba(15, 23, 42, 0.95);
-            border-radius: 16px;
-            padding: 16px 18px;
-            margin-bottom: 16px;
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
-            border: 1px solid rgba(148, 163, 184, 0.25);
-        }
-        .world-map-card h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #e5e7eb;
-        }
+
         .map-wrap {
             position: relative;
             display: inline-block;
-            border: 2px solid rgba(148, 163, 184, 0.4);
-            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
             overflow: hidden;
             background: #0f172a;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
         }
+
         .map-grid {
             display: grid;
             gap: 1px;
-            background: rgba(30, 58, 138, 0.5);
+            background: var(--grid-line);
         }
+
         .map-cell {
             width: 22px;
             height: 22px;
             box-sizing: border-box;
+            transition: box-shadow 0.15s ease;
         }
+
         .map-cell.terrain-WATER { background: #0c4a6e; }
-        .map-cell.terrain-SAND { background: #e7d5a8; }
-        .map-cell.terrain-PALM_GROVE { background: #166534; }
-        .map-cell.terrain-ROCKY_CLIFF { background: #57534e; }
-        .map-cell.terrain-LAGOON_EDGE { background: #0d9488; }
-        .map-cell.terrain-GRASS { background: #4d7c0f; }
-        .map-cell.path-pioneer { box-shadow: inset 0 0 0 2px rgba(56, 189, 248, 0.7); }
-        .map-cell.path-pet { box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.7); }
-        .map-cell.path-doctor { box-shadow: inset 0 0 0 2px rgba(34, 197, 94, 0.7); }
-        .map-cell.path-psychologist { box-shadow: inset 0 0 0 2px rgba(168, 85, 247, 0.7); }
-        .map-cell.path-judge { box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.7); }
-        .map-cell.path-explorer { box-shadow: inset 0 0 0 2px rgba(244, 114, 182, 0.7); }
-        .map-cell.interaction-cell { box-shadow: inset 0 0 0 2px #fbbf24; background: rgba(251, 191, 36, 0.3) !important; }
+        .map-cell.terrain-SAND { background: #a8a078; }
+        .map-cell.terrain-PALM_GROVE { background: #14532d; }
+        .map-cell.terrain-ROCKY_CLIFF { background: #44403c; }
+        .map-cell.terrain-LAGOON_EDGE { background: #0f766e; }
+        .map-cell.terrain-GRASS { background: #365314; }
+        .map-cell.path-pioneer { box-shadow: inset 0 0 0 2px rgba(34, 211, 238, 0.6); }
+        .map-cell.path-pet { box-shadow: inset 0 0 0 2px rgba(251, 191, 36, 0.6); }
+        .map-cell.path-explorer { box-shadow: inset 0 0 0 2px rgba(244, 114, 182, 0.6); }
+        .map-cell.interaction-cell {
+            box-shadow: inset 0 0 0 2px #fbbf24;
+            background: rgba(251, 191, 36, 0.25) !important;
+            animation: conflictPulse 1.5s ease infinite;
+        }
+
+        @keyframes conflictPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+
         .map-agents-layer {
             position: absolute;
             left: 0;
             top: 0;
             pointer-events: none;
         }
+
         .map-agent-marker {
             position: absolute;
             width: 18px;
@@ -318,202 +355,280 @@
             font-size: 9px;
             font-weight: 700;
             color: #0f172a;
-            border: 2px solid rgba(15, 23, 42, 0.8);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            border: 2px solid rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+            transition: transform 0.15s ease;
         }
-        .map-agent-marker.pioneer { background: #38bdf8; }
+
+        .map-agent-marker.pioneer { background: #22d3ee; }
         .map-agent-marker.pet { background: #fbbf24; }
-        .map-agent-marker.doctor { background: #22c55e; }
-        .map-agent-marker.psychologist { background: #a855f7; }
-        .map-agent-marker.judge { background: #ef4444; }
         .map-agent-marker.explorer { background: #f472b6; }
+
         .map-legend {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             margin-top: 10px;
-            font-size: 11px;
-            color: #94a3b8;
+            font-size: 10px;
+            color: var(--text-muted);
         }
+
         .map-legend span { display: inline-flex; align-items: center; gap: 4px; }
-        .map-legend .swatch { width: 12px; height: 12px; border-radius: 2px; }
+        .map-legend .swatch { width: 10px; height: 10px; border-radius: 2px; }
+
+        /* Right column: council evaluation (Doctor, Psychologist, Judge). */
+        .council-panel {
+            border-left: 3px solid var(--accent-purple);
+        }
+
+        .council-section {
+            margin-bottom: 14px;
+        }
+
+        .council-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .council-section-title {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent-teal);
+            margin-bottom: 6px;
+        }
+
+        .council-list {
+            max-height: 100px;
+            overflow-y: auto;
+            font-size: 11px;
+            color: var(--text-primary);
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 6px;
+            border: 1px solid var(--grid-line);
+        }
+
+        .council-list .item {
+            padding: 4px 0;
+            border-bottom: 1px solid var(--grid-line);
+        }
+
+        .council-list .item:last-child { border-bottom: none; }
+        .council-list .empty { color: var(--text-muted); font-style: italic; }
+
+        /* Bottom: event feed — newest events on top, scrollable. */
+        .event-feed {
+            margin-top: 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            max-height: 220px;
+        }
+
+        .event-feed .panel-title {
+            margin-bottom: 10px;
+        }
+
+        .events-list {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .event-item {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--grid-line);
+            background: rgba(0, 0, 0, 0.2);
+            transition: border-color 0.2s;
+        }
+
+        .event-item:hover {
+            border-color: rgba(6, 182, 212, 0.4);
+        }
+
+        .event-ticker-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent-cyan);
+            background: linear-gradient(90deg, rgba(6, 182, 212, 0.2), rgba(20, 184, 166, 0.15));
+            border-bottom: 1px solid var(--grid-line);
+        }
+
+        .event-body {
+            padding: 8px 10px;
+        }
+
+        .event-meta {
+            color: var(--text-muted);
+            font-size: 10px;
+        }
+
+        .event-text {
+            color: var(--text-primary);
+            margin-top: 4px;
+            line-height: 1.35;
+        }
     </style>
 </head>
 <body>
-<div class="page">
-    <h1>
-        Hello World
-        <span class="badge">Island · First life simulation</span>
-    </h1>
-    <p style="color:#e5e7eb;font-size:14px;margin-bottom:18px;">
-        A single conscious being opens its eyes on a remote island. Watch the world tick forward as it searches for any sign of other life.
-    </p>
-
-    <div class="world-card">
-        <div class="world-meta">
-            <div><span class="pill">WORLD</span></div>
-            <div>Tick: <span id="tick">0</span></div>
-            <div>Name: <span id="worldName">–</span></div>
+<!-- Dashboard: Tiramisu Agent World monitoring console. Sections: top-bar, main-grid, event-feed. -->
+<div id="dashboard" class="dashboard">
+    <!-- Top bar: title, live metrics (tick, status, population, conflicts, diagnostics, alliances), controls, time slider. -->
+    <header class="top-bar">
+        <h1 class="top-bar-title">TIRAMISU · AGENT WORLD</h1>
+        <div class="top-bar-metrics">
+            <div class="metric">
+                <span class="metric-label">Tick</span>
+                <span class="metric-value" id="tick">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Status</span>
+                <span class="metric-value" id="worldName">–</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Population</span>
+                <span class="metric-value" id="populationCount">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Conflicts</span>
+                <span class="metric-value" id="councilConflictCount">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Diagnostics</span>
+                <span class="metric-value" id="councilDiagnosticCount">0</span>
+            </div>
+            <div class="metric">
+                <span class="metric-label">Alliances</span>
+                <span class="metric-value" id="alliancesCount">0</span>
+            </div>
         </div>
-        <p id="worldDescription" style="margin-top:10px;font-size:14px;color:#e5e7eb;"></p>
-        <div class="controls">
-            <button id="btnStep">
-                ▶ Step
-            </button>
-            <label style="font-size:13px;display:flex;align-items:center;gap:6px;">
+        <div class="top-bar-controls">
+            <button id="btnStep">▶ Step</button>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);">
                 ticks:
                 <input id="stepCount" type="number" min="1" value="1">
             </label>
-            <button id="btnAuto" class="secondary">
-                ▷ Auto-run
-            </button>
-            <button id="btnReset" class="secondary">
-                ⟳ Reset world
-            </button>
-            <span id="status" style="font-size:12px;color:#9ca3af;"></span>
+            <button id="btnAuto" class="secondary">▷ Auto-run</button>
+            <button id="btnReset" class="secondary">⟳ Reset</button>
+            <span id="status" style="font-size:11px;color:var(--text-muted);"></span>
         </div>
-        <div class="tick-slider-wrap" style="margin-top:14px;">
-            <label for="tickSlider" style="font-size:13px;color:#cbd5f5;">Time (tick)</label>
-            <input type="range" id="tickSlider" min="0" max="0" value="0" style="vertical-align:middle;margin:0 10px;">
-            <span id="tickSliderLabel" style="font-size:13px;color:#a5f3fc;">0</span>
+        <div class="tick-slider-wrap">
+            <label for="tickSlider" style="font-size:12px;color:var(--text-muted);">Time (tick)</label>
+            <input type="range" id="tickSlider" min="0" max="0" value="0">
+            <span id="tickSliderLabel" style="font-size:12px;color:var(--accent-cyan);">0</span>
         </div>
         <div id="error" class="error" style="display:none;"></div>
-    </div>
+    </header>
 
-    <div class="world-card" style="margin-top:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <span style="font-size:13px;color:#e5e7eb;font-weight:500;">World dashboard</span>
-            <span style="font-size:11px;color:#9ca3af;">High-level island metrics</span>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:13px;">
-            <div style="flex:1;min-width:140px;">
-                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Population</div>
-                <div style="font-size:20px;font-weight:600;" id="populationCount">0</div>
-            </div>
-            <div style="flex:1;min-width:140px;">
-                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Alliances</div>
-                <div style="font-size:20px;font-weight:600;" id="alliancesCount">0</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="world-card council-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <span style="font-size:13px;color:#e5e7eb;font-weight:500;">Council Evaluation</span>
-            <span style="font-size:11px;color:#9ca3af;">Observer agents analyze acting agents</span>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:13px;">
-            <div style="flex:1;min-width:100px;">
-                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Conflicts</div>
-                <div style="font-size:20px;font-weight:600;" id="councilConflictCount">0</div>
-            </div>
-            <div style="flex:1;min-width:100px;">
-                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Diagnostics</div>
-                <div style="font-size:20px;font-weight:600;" id="councilDiagnosticCount">0</div>
-            </div>
-            <div style="flex:1;min-width:100px;">
-                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Behaviour notes</div>
-                <div style="font-size:20px;font-weight:600;" id="councilNotesCount">0</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="world-card council-panel">
-        <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#e5e7eb;">Council Panel</h3>
-        <div class="council-section">
-            <div class="council-section-title">Doctor · Diagnostics</div>
-            <div class="council-list" id="councilDiagnostics"></div>
-        </div>
-        <div class="council-section">
-            <div class="council-section-title">Psychologist · Behaviour notes</div>
-            <div class="council-list" id="councilBehaviourNotes"></div>
-        </div>
-        <div class="council-section">
-            <div class="council-section-title">Judge · Conflict log</div>
-            <div class="council-list" id="councilConflicts"></div>
-        </div>
-    </div>
-
-    <div class="world-map-card">
-        <h3>World map · Island terrain, acting agents & paths</h3>
-        <div class="map-wrap" id="mapWrap">
-            <div class="map-grid" id="mapGrid"></div>
-            <div class="map-agents-layer" id="mapAgentsLayer"></div>
-        </div>
-        <div class="map-legend" id="mapLegend">
-            <span><span class="swatch" style="background:#0c4a6e"></span> Water</span>
-            <span><span class="swatch" style="background:#e7d5a8"></span> Sand</span>
-            <span><span class="swatch" style="background:#166534"></span> Palm</span>
-            <span><span class="swatch" style="background:#4d7c0f"></span> Grass</span>
-            <span><span class="swatch" style="background:#0d9488"></span> Lagoon</span>
-            <span><span class="swatch" style="background:#57534e"></span> Cliff</span>
-        </div>
-    </div>
-
-    <div class="agent-card">
-        <div class="agent-main">
-            <div class="agent-avatar" id="agentInitials">A</div>
-            <div class="agent-details">
-                <div class="agent-name" id="agentName">–</div>
-                <div class="agent-role" id="agentRole">FIRST LIFE</div>
-                <div class="agent-location" id="agentLocation">–</div>
-                <div class="thought" id="agentThought">
-                    Waiting for the world state…
+    <!-- Main section: 3 columns — Agents (left), World map (center), Council (right). -->
+    <main class="main-grid">
+        <!-- Left: agents panel — acting agents with name, role, latest thought, memory count. -->
+        <section class="panel agents-panel">
+            <h2 class="panel-title">Agents</h2>
+            <div class="agent-card">
+                <div class="agent-main">
+                    <div class="agent-avatar" id="agentInitials">E</div>
+                    <div class="agent-details">
+                        <div class="agent-name" id="agentName">–</div>
+                        <div class="agent-role" id="agentRole">First life</div>
+                        <div class="agent-location" id="agentLocation">–</div>
+                        <div class="thought" id="agentThought">Waiting for world state…</div>
+                    </div>
+                </div>
+                <div class="status-row">
+                    <span>Memory: <span id="memoryCount">0</span></span>
+                    <span id="lastUpdated">–</span>
                 </div>
             </div>
-        </div>
-        <div class="status-row">
-            <div>Memory entries: <span id="memoryCount">0</span></div>
-            <div>Last updated: <span id="lastUpdated">–</span></div>
-        </div>
-    </div>
-
-    <div class="agent-card">
-        <div class="agent-main">
-            <div class="agent-avatar" id="petInitials">B</div>
-            <div class="agent-details">
-                <div class="agent-name" id="petName">–</div>
-                <div class="agent-role" id="petRole">COMPANION</div>
-                <div class="agent-location" id="petLocation">–</div>
-                <div class="thought" id="petThought">
-                    Waiting to see what Eos does…
+            <div class="agent-card">
+                <div class="agent-main">
+                    <div class="agent-avatar" id="petInitials">B</div>
+                    <div class="agent-details">
+                        <div class="agent-name" id="petName">–</div>
+                        <div class="agent-role" id="petRole">Companion</div>
+                        <div class="agent-location" id="petLocation">–</div>
+                        <div class="thought" id="petThought">Waiting…</div>
+                    </div>
+                </div>
+                <div class="status-row">
+                    <span>Memory: <span id="petMemoryCount">0</span></span>
                 </div>
             </div>
-        </div>
-        <div class="status-row">
-            <div>Memory entries: <span id="petMemoryCount">0</span></div>
-            <div></div>
-        </div>
-    </div>
-
-    <div class="agent-card">
-        <div class="agent-main">
-            <div class="agent-avatar" id="explorerInitials">N</div>
-            <div class="agent-details">
-                <div class="agent-name" id="explorerName">–</div>
-                <div class="agent-role" id="explorerRole">EXPLORER</div>
-                <div class="agent-location" id="explorerLocation">–</div>
-                <div class="thought" id="explorerThought">
-                    Waiting to explore…
+            <div class="agent-card">
+                <div class="agent-main">
+                    <div class="agent-avatar" id="explorerInitials">N</div>
+                    <div class="agent-details">
+                        <div class="agent-name" id="explorerName">–</div>
+                        <div class="agent-role" id="explorerRole">Explorer</div>
+                        <div class="agent-location" id="explorerLocation">–</div>
+                        <div class="thought" id="explorerThought">Waiting…</div>
+                    </div>
+                </div>
+                <div class="status-row">
+                    <span>Memory: <span id="explorerMemoryCount">0</span></span>
                 </div>
             </div>
-        </div>
-        <div class="status-row">
-            <div>Memory entries: <span id="explorerMemoryCount">0</span></div>
-            <div></div>
-        </div>
-    </div>
+        </section>
 
-    <div class="events-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-            <span style="font-size:13px;color:#e5e7eb;font-weight:500;">World events</span>
-            <span style="font-size:11px;color:#9ca3af;">Newest at bottom</span>
-        </div>
+        <!-- Center: world map — island grid, agent markers, paths, interaction highlight. -->
+        <section class="panel world-map">
+            <h2 class="panel-title">World map</h2>
+            <p id="worldDescription" style="font-size:11px;color:var(--text-muted);margin:0 0 10px 0;"></p>
+            <div class="map-wrap" id="mapWrap">
+                <div class="map-grid" id="mapGrid"></div>
+                <div class="map-agents-layer" id="mapAgentsLayer"></div>
+            </div>
+            <div class="map-legend" id="mapLegend">
+                <span><span class="swatch" style="background:#0c4a6e"></span> Water</span>
+                <span><span class="swatch" style="background:#a8a078"></span> Sand</span>
+                <span><span class="swatch" style="background:#14532d"></span> Palm</span>
+                <span><span class="swatch" style="background:#365314"></span> Grass</span>
+                <span><span class="swatch" style="background:#0f766e"></span> Lagoon</span>
+                <span><span class="swatch" style="background:#44403c"></span> Cliff</span>
+            </div>
+        </section>
+
+        <!-- Right: council panel — observer evaluations (Doctor, Psychologist, Judge). -->
+        <aside class="panel council-panel">
+            <h2 class="panel-title">Council</h2>
+            <div class="council-section">
+                <div class="council-section-title">Doctor · Diagnostics</div>
+                <div class="council-list" id="councilDiagnostics"></div>
+            </div>
+            <div class="council-section">
+                <div class="council-section-title">Psychologist · Behaviour notes</div>
+                <div class="council-list" id="councilBehaviourNotes"></div>
+            </div>
+            <div class="council-section">
+                <div class="council-section-title">Judge · Conflict log</div>
+                <div class="council-list" id="councilConflicts"></div>
+            </div>
+            <div style="margin-top:8px;font-size:10px;color:var(--text-muted);">Behaviour notes count: <span id="councilNotesCount">0</span></div>
+        </aside>
+    </main>
+
+    <!-- Bottom: event feed — simulation events, newest on top. -->
+    <section class="event-feed">
+        <h2 class="panel-title">Event feed</h2>
         <div class="events-list" id="events"></div>
-    </div>
+    </section>
 </div>
 
 <script>
+    // --- Element refs (IDs unchanged for compatibility with /api/world/state updates) ---
     const tickEl = document.getElementById('tick');
     const worldNameEl = document.getElementById('worldName');
     const worldDescriptionEl = document.getElementById('worldDescription');
@@ -527,27 +642,23 @@
     const eventsEl = document.getElementById('events');
     const statusEl = document.getElementById('status');
     const errorEl = document.getElementById('error');
-
     const populationCountEl = document.getElementById('populationCount');
     const alliancesCountEl = document.getElementById('alliancesCount');
     const councilConflictCountEl = document.getElementById('councilConflictCount');
     const councilDiagnosticCountEl = document.getElementById('councilDiagnosticCount');
     const councilNotesCountEl = document.getElementById('councilNotesCount');
-
     const petInitialsEl = document.getElementById('petInitials');
     const petNameEl = document.getElementById('petName');
     const petRoleEl = document.getElementById('petRole');
     const petLocationEl = document.getElementById('petLocation');
     const petThoughtEl = document.getElementById('petThought');
     const petMemoryCountEl = document.getElementById('petMemoryCount');
-
     const explorerInitialsEl = document.getElementById('explorerInitials');
     const explorerNameEl = document.getElementById('explorerName');
     const explorerRoleEl = document.getElementById('explorerRole');
     const explorerLocationEl = document.getElementById('explorerLocation');
     const explorerThoughtEl = document.getElementById('explorerThought');
     const explorerMemoryCountEl = document.getElementById('explorerMemoryCount');
-
     const btnStep = document.getElementById('btnStep');
     const btnAuto = document.getElementById('btnAuto');
     const btnReset = document.getElementById('btnReset');
@@ -556,20 +667,14 @@
     const tickSliderLabelEl = document.getElementById('tickSliderLabel');
 
     let autoInterval = null;
-    /** Snapshot of world state at each tick we've seen (from load, step, or reset). */
     let stateHistory = [];
-    /** Index into stateHistory for the state currently displayed (0 = oldest). */
     let viewIndex = 0;
 
     function setLoading(isLoading) {
         btnStep.disabled = isLoading;
         btnReset.disabled = isLoading;
-        btnAuto.disabled = false; // we manage separately
-        if (isLoading) {
-            statusEl.textContent = 'Updating world…';
-        } else {
-            statusEl.textContent = '';
-        }
+        if (isLoading) statusEl.textContent = 'Updating…';
+        else statusEl.textContent = '';
     }
 
     function setError(message) {
@@ -584,16 +689,11 @@
 
     function initials(name) {
         if (!name) return '?';
-        return name
-            .split(/\s+/)
-            .filter(Boolean)
-            .slice(0, 2)
-            .map(p => p[0].toUpperCase())
-            .join('');
+        return name.split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0].toUpperCase()).join('');
     }
 
     function formatTime(d) {
-        return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'});
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
 
     function escapeHtml(s) {
@@ -602,13 +702,21 @@
         return div.innerHTML;
     }
 
+    function bumpMetric(el) {
+        if (!el || !el.classList) return;
+        el.classList.remove('bump');
+        el.offsetHeight;
+        el.classList.add('bump');
+        setTimeout(function () { el.classList.remove('bump'); }, 300);
+    }
+
     function renderState(state) {
         if (!state) return;
+
         tickEl.textContent = state.tick;
         worldNameEl.textContent = state.worldName || '–';
-        worldDescriptionEl.textContent = state.description || '';
+        if (worldDescriptionEl) worldDescriptionEl.textContent = state.description || '';
 
-        // Dashboard metrics
         let population = 0;
         if (state.pioneer) population++;
         if (state.companion) population++;
@@ -616,7 +724,10 @@
         if (state.doctor) population++;
         if (state.psychologist) population++;
         if (state.judge) population++;
+
+        const prevPop = populationCountEl.textContent;
         populationCountEl.textContent = population;
+        if (prevPop !== String(population)) bumpMetric(populationCountEl);
 
         const alliances = Array.isArray(state.alliances) ? state.alliances.length : 0;
         alliancesCountEl.textContent = alliances;
@@ -627,8 +738,12 @@
         const notes = council.behaviourNotes || {};
         const notesCount = typeof notes === 'object' ? Object.keys(notes).length : 0;
 
-        if (councilConflictCountEl) councilConflictCountEl.textContent = conflictCount;
-        if (councilDiagnosticCountEl) councilDiagnosticCountEl.textContent = diagnosticCount;
+        const prevConf = councilConflictCountEl.textContent;
+        councilConflictCountEl.textContent = conflictCount;
+        if (prevConf !== String(conflictCount)) bumpMetric(councilConflictCountEl);
+        const prevDiag = councilDiagnosticCountEl.textContent;
+        councilDiagnosticCountEl.textContent = diagnosticCount;
+        if (prevDiag !== String(diagnosticCount)) bumpMetric(councilDiagnosticCountEl);
         if (councilNotesCountEl) councilNotesCountEl.textContent = notesCount;
 
         const diagnosticsEl = document.getElementById('councilDiagnostics');
@@ -648,8 +763,8 @@
             conflictsEl.innerHTML = list.length ? list.map(s => '<div class="item">' + escapeHtml(s) + '</div>').join('') : '<div class="empty">No conflicts recorded.</div>';
         }
 
-        const a = state.pioneer;
-        if (a) {
+        if (state.pioneer) {
+            const a = state.pioneer;
             agentInitialsEl.textContent = initials(a.name);
             agentNameEl.textContent = a.name || '–';
             agentRoleEl.textContent = (a.role || 'FIRST_LIFE').toString().replace(/_/g, ' ');
@@ -662,8 +777,8 @@
             agentThoughtEl.textContent = 'World has no conscious life yet.';
         }
 
-        const pet = state.companion;
-        if (pet) {
+        if (state.companion) {
+            const pet = state.companion;
             petInitialsEl.textContent = initials(pet.name);
             petNameEl.textContent = pet.name || '–';
             petRoleEl.textContent = (pet.role || 'PET_DOG').toString().replace(/_/g, ' ');
@@ -673,11 +788,11 @@
         } else {
             petNameEl.textContent = 'No companion';
             petInitialsEl.textContent = '?';
-            petThoughtEl.textContent = 'The island is quiet, without even a pet.';
+            petThoughtEl.textContent = 'The island is quiet.';
         }
 
-        const explorer = state.explorer;
-        if (explorer) {
+        if (state.explorer) {
+            const explorer = state.explorer;
             explorerInitialsEl.textContent = initials(explorer.name);
             explorerNameEl.textContent = explorer.name || '–';
             explorerRoleEl.textContent = (explorer.role || 'EXPLORER').toString().replace(/_/g, ' ');
@@ -687,19 +802,19 @@
         } else {
             explorerNameEl.textContent = 'No explorer';
             explorerInitialsEl.textContent = '?';
-            explorerThoughtEl.textContent = 'No second soul on the island yet.';
+            explorerThoughtEl.textContent = 'No second soul yet.';
         }
 
         if (Array.isArray(state.events)) {
             eventsEl.innerHTML = '';
-            state.events.forEach(ev => {
+            const reversed = state.events.slice().reverse();
+            reversed.forEach(ev => {
                 const item = document.createElement('div');
                 item.className = 'event-item';
                 const bar = document.createElement('div');
                 bar.className = 'event-ticker-bar';
                 const label = document.createElement('span');
-                label.className = 'label';
-                label.textContent = 'WORLD NEWS';
+                label.textContent = 'EVENT';
                 const meta = document.createElement('span');
                 meta.className = 'event-meta';
                 const ts = ev.timestamp ? new Date(ev.timestamp) : null;
@@ -716,28 +831,16 @@
                 item.appendChild(body);
                 eventsEl.appendChild(item);
             });
-            eventsEl.scrollTop = eventsEl.scrollHeight;
+            eventsEl.scrollTop = 0;
         }
 
-        lastUpdatedEl.textContent = formatTime(new Date());
+        if (lastUpdatedEl) lastUpdatedEl.textContent = formatTime(new Date());
         renderMap(state);
     }
 
     const CELL_SIZE = 22;
     const GAP = 1;
     const STEP = CELL_SIZE + GAP;
-
-    function roleKey(agent) {
-        if (!agent || !agent.role) return '';
-        const r = agent.role.toString();
-        if (r === 'FIRST_LIFE') return 'pioneer';
-        if (r === 'PET_DOG') return 'pet';
-        if (r === 'EXPLORER') return 'explorer';
-        if (r === 'DOCTOR') return 'doctor';
-        if (r === 'PSYCHOLOGIST') return 'psychologist';
-        if (r === 'JUDGE') return 'judge';
-        return '';
-    }
 
     function renderMap(state) {
         const gridEl = document.getElementById('mapGrid');
@@ -754,7 +857,6 @@
         gridEl.innerHTML = '';
 
         const pathCells = {};
-        // Only acting agents appear on the map; council members do not move
         const agents = [
             { a: state.pioneer, key: 'pioneer' },
             { a: state.companion, key: 'pet' },
@@ -846,10 +948,8 @@
         try {
             setLoading(true);
             setError('');
-            const params = new URLSearchParams({ticks: String(ticks)});
-            const res = await fetch('/api/world/step?' + params.toString(), {
-                method: 'POST'
-            });
+            const params = new URLSearchParams({ ticks: String(ticks) });
+            const res = await fetch('/api/world/step?' + params.toString(), { method: 'POST' });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const json = await res.json();
             stateHistory.push(json);
@@ -868,7 +968,7 @@
         try {
             setLoading(true);
             setError('');
-            const res = await fetch('/api/world/reset', {method: 'POST'});
+            const res = await fetch('/api/world/reset', { method: 'POST' });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const json = await res.json();
             stateHistory = [json];
@@ -892,8 +992,8 @@
             return;
         }
         autoInterval = setInterval(callStep, 1500);
-        btnAuto.textContent = '❚❚ Stop auto';
-        statusEl.textContent = 'Auto-run every ~1.5s';
+        btnAuto.textContent = '❚❚ Stop';
+        statusEl.textContent = 'Auto-run';
     }
 
     btnStep.addEventListener('click', callStep);
@@ -910,9 +1010,7 @@
         });
     }
 
-    // Initial load
     fetchState();
 </script>
 </body>
 </html>
-
