@@ -2,6 +2,8 @@
 
 A **multi-agent island simulation** built with Java and Spring Boot. The project simulates a small world (Island-1) where agents with different roles—first life, pet, explorer, doctor, psychologist, judge—move on a grid, record thoughts and events, and are observed through a web UI. The judge detects and logs **conflicts** when two agents occupy the same cell. The design is prepared for pluggable **LLM brains** so each agent can later be driven by a different language model.
 
+**Live demo:** [https://tiramisu-production.up.railway.app/world.html](https://tiramisu-production.up.railway.app/world.html)
+
 ---
 
 ## What This Project Does
