@@ -21,8 +21,7 @@ default:
 build:
   stage: build
   script:
-    - chmod +x mvnw
-    - ./mvnw $MAVEN_CLI_OPTS clean package -DskipTests
+    - mvn $MAVEN_CLI_OPTS clean package -DskipTests
   artifacts:
     paths:
       - target/*.jar
@@ -31,8 +30,7 @@ build:
 test:
   stage: test
   script:
-    - chmod +x mvnw
-    - ./mvnw $MAVEN_CLI_OPTS test
+    - mvn $MAVEN_CLI_OPTS test
   dependencies:
     - build
 

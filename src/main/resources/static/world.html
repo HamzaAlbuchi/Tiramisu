@@ -264,6 +264,7 @@
         .map-cell.path-doctor { box-shadow: inset 0 0 0 2px rgba(34, 197, 94, 0.7); }
         .map-cell.path-psychologist { box-shadow: inset 0 0 0 2px rgba(168, 85, 247, 0.7); }
         .map-cell.path-judge { box-shadow: inset 0 0 0 2px rgba(239, 68, 68, 0.7); }
+        .map-cell.path-explorer { box-shadow: inset 0 0 0 2px rgba(244, 114, 182, 0.7); }
         .map-cell.interaction-cell { box-shadow: inset 0 0 0 2px #fbbf24; background: rgba(251, 191, 36, 0.3) !important; }
         .map-agents-layer {
             position: absolute;
@@ -290,6 +291,7 @@
         .map-agent-marker.doctor { background: #22c55e; }
         .map-agent-marker.psychologist { background: #a855f7; }
         .map-agent-marker.judge { background: #ef4444; }
+        .map-agent-marker.explorer { background: #f472b6; }
         .map-legend {
             display: flex;
             flex-wrap: wrap;
@@ -416,6 +418,24 @@
         </div>
     </div>
 
+    <div class="agent-card">
+        <div class="agent-main">
+            <div class="agent-avatar" id="explorerInitials">N</div>
+            <div class="agent-details">
+                <div class="agent-name" id="explorerName">–</div>
+                <div class="agent-role" id="explorerRole">EXPLORER</div>
+                <div class="agent-location" id="explorerLocation">–</div>
+                <div class="thought" id="explorerThought">
+                    Waiting to explore…
+                </div>
+            </div>
+        </div>
+        <div class="status-row">
+            <div>Memory entries: <span id="explorerMemoryCount">0</span></div>
+            <div></div>
+        </div>
+    </div>
+
     <div class="events-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <span style="font-size:13px;color:#e5e7eb;font-weight:500;">World events</span>
@@ -452,6 +472,13 @@
     const petLocationEl = document.getElementById('petLocation');
     const petThoughtEl = document.getElementById('petThought');
     const petMemoryCountEl = document.getElementById('petMemoryCount');
+
+    const explorerInitialsEl = document.getElementById('explorerInitials');
+    const explorerNameEl = document.getElementById('explorerName');
+    const explorerRoleEl = document.getElementById('explorerRole');
+    const explorerLocationEl = document.getElementById('explorerLocation');
+    const explorerThoughtEl = document.getElementById('explorerThought');
+    const explorerMemoryCountEl = document.getElementById('explorerMemoryCount');
 
     const btnStep = document.getElementById('btnStep');
     const btnAuto = document.getElementById('btnAuto');
@@ -505,6 +532,7 @@
         let population = 0;
         if (state.pioneer) population++;
         if (state.companion) population++;
+        if (state.explorer) population++;
         if (state.doctor) population++;
         if (state.psychologist) population++;
         if (state.judge) population++;
@@ -554,6 +582,20 @@
             petThoughtEl.textContent = 'The island is quiet, without even a pet.';
         }
 
+        const explorer = state.explorer;
+        if (explorer) {
+            explorerInitialsEl.textContent = initials(explorer.name);
+            explorerNameEl.textContent = explorer.name || '–';
+            explorerRoleEl.textContent = (explorer.role || 'EXPLORER').toString().replace(/_/g, ' ');
+            explorerLocationEl.textContent = explorer.location || 'Island-1';
+            explorerThoughtEl.textContent = explorer.currentThought || '…';
+            explorerMemoryCountEl.textContent = (explorer.memory && explorer.memory.length) || 0;
+        } else {
+            explorerNameEl.textContent = 'No explorer';
+            explorerInitialsEl.textContent = '?';
+            explorerThoughtEl.textContent = 'No second soul on the island yet.';
+        }
+
         if (Array.isArray(state.events)) {
             eventsEl.innerHTML = '';
             state.events.forEach(ev => {
@@ -596,6 +638,7 @@
         const r = agent.role.toString();
         if (r === 'FIRST_LIFE') return 'pioneer';
         if (r === 'PET_DOG') return 'pet';
+        if (r === 'EXPLORER') return 'explorer';
         if (r === 'DOCTOR') return 'doctor';
         if (r === 'PSYCHOLOGIST') return 'psychologist';
         if (r === 'JUDGE') return 'judge';
@@ -620,6 +663,7 @@
         const agents = [
             { a: state.pioneer, key: 'pioneer' },
             { a: state.companion, key: 'pet' },
+            { a: state.explorer, key: 'explorer' },
             { a: state.doctor, key: 'doctor' },
             { a: state.psychologist, key: 'psychologist' },
             { a: state.judge, key: 'judge' }

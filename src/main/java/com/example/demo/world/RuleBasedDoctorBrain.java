@@ -10,7 +10,7 @@ public class RuleBasedDoctorBrain implements AgentBrain {
 
         // Very simple heuristic: look at each agent's latest thought for "voices" or "no answer"
         int flaggedAgents = 0;
-        for (Agent other : new Agent[]{world.getPioneer(), world.getCompanion()}) {
+        for (Agent other : new Agent[]{world.getPioneer(), world.getCompanion(), world.getExplorer()}) {
             if (other == null) {
                 continue;
             }

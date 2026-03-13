@@ -15,6 +15,7 @@ public class WorldState {
     private String description;
     private Agent pioneer;
     private Agent companion;
+    private Agent explorer;
     private Agent doctor;
     private Agent psychologist;
     private Agent judge;
@@ -79,6 +80,14 @@ public class WorldState {
 
     public void setCompanion(Agent companion) {
         this.companion = companion;
+    }
+
+    public Agent getExplorer() {
+        return explorer;
+    }
+
+    public void setExplorer(Agent explorer) {
+        this.explorer = explorer;
     }
 
     public Agent getDoctor() {

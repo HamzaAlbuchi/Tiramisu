@@ -11,6 +11,7 @@ public class WorldService {
     private final WorldState state;
     private final AgentBrain pioneerBrain;
     private final AgentBrain petBrain;
+    private final AgentBrain explorerBrain;
     private final AgentBrain doctorBrain;
     private final AgentBrain psychologistBrain;
     private final AgentBrain judgeBrain;
@@ -19,6 +20,7 @@ public class WorldService {
         this.state = new WorldState();
         this.pioneerBrain = new RuleBasedPioneerBrain();
         this.petBrain = new RuleBasedPetBrain();
+        this.explorerBrain = new RuleBasedExplorerBrain();
         this.doctorBrain = new RuleBasedDoctorBrain();
         this.psychologistBrain = new RuleBasedPsychologistBrain();
         this.judgeBrain = new RuleBasedJudgeBrain();
@@ -39,6 +41,12 @@ public class WorldService {
         pet.remember("First memory: the sound of waves and Eos' voice.");
         placeAgent(pet, 5, 1);
         pet.addPathPoint(5, 1);
+
+        Agent explorer = new Agent("Nova", AgentRole.EXPLORER, "Island-1:shore");
+        explorer.setCurrentThought("I just arrived on this island. I wonder who else is here.");
+        explorer.remember("Washed ashore on the far side of Island-1.");
+        placeAgent(explorer, 8, 1);
+        explorer.addPathPoint(8, 1);
 
         Agent doctor = new Agent("Dr. Selim", AgentRole.DOCTOR, "Island-1:infirmary-tent");
         doctor.setCurrentThought("I will monitor the minds on this island for signs of strain.");
@@ -61,12 +69,13 @@ public class WorldService {
         state.setTick(0L);
         state.setPioneer(pioneer);
         state.setCompanion(pet);
+        state.setExplorer(explorer);
         state.setDoctor(doctor);
         state.setPsychologist(psychologist);
         state.setJudge(judge);
         state.addEvent(new WorldEvent(
                 state.getTick(),
-                "Breaking: The first lifeform 'Eos' awakens on Island-1, with Bony the dog and a small observing council (doctor, psychologist, judge) in place."
+                "Breaking: Eos and Bony awaken on Island-1; Nova the explorer reaches the shore. A small observing council (doctor, psychologist, judge) is in place."
         ));
     }
 
@@ -140,6 +149,7 @@ public class WorldService {
 
         Agent pioneer = state.getPioneer();
         Agent pet = state.getCompanion();
+        Agent explorer = state.getExplorer();
         Agent doctor = state.getDoctor();
         Agent psychologist = state.getPsychologist();
         Agent judge = state.getJudge();
@@ -158,6 +168,14 @@ public class WorldService {
             pet.remember(petDecision.getNewThought());
             applyMovement(pet, petDecision);
             state.addEvent(new WorldEvent(nextTick, petDecision.getWorldEventDescription()));
+        }
+
+        if (explorer != null) {
+            AgentDecision explorerDecision = explorerBrain.decide(state, explorer);
+            explorer.setCurrentThought(explorerDecision.getNewThought());
+            explorer.remember(explorerDecision.getNewThought());
+            applyMovement(explorer, explorerDecision);
+            state.addEvent(new WorldEvent(nextTick, explorerDecision.getWorldEventDescription()));
         }
 
         if (doctor != null) {

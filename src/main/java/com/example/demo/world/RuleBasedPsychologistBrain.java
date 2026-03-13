@@ -10,6 +10,7 @@ public class RuleBasedPsychologistBrain implements AgentBrain {
 
         Agent pioneer = world.getPioneer();
         Agent companion = world.getCompanion();
+        Agent explorer = world.getExplorer();
 
         if (pioneer != null) {
             String pioneerNote = "Eos appears " + inferMoodFromThought(pioneer.getCurrentThought()) + ".";
@@ -19,6 +20,11 @@ public class RuleBasedPsychologistBrain implements AgentBrain {
         if (companion != null) {
             String petNote = "Bony shows " + inferEnergyFromThought(companion.getCurrentThought()) + " energy.";
             notes.put(companion.getId(), petNote);
+        }
+
+        if (explorer != null) {
+            String explorerNote = "Nova appears " + inferMoodFromThought(explorer.getCurrentThought()) + ".";
+            notes.put(explorer.getId(), explorerNote);
         }
 
         String thought = "I study how each being copes with isolation, mapping out their mood and energy.";
