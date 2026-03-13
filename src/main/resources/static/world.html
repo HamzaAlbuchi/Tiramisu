@@ -219,6 +219,29 @@
             font-size: 12px;
             color: #fecaca;
         }
+        .council-card { border-left: 4px solid #22c55e; }
+        .council-panel { border-left: 4px solid #a855f7; }
+        .council-section { margin-bottom: 14px; }
+        .council-section:last-child { margin-bottom: 0; }
+        .council-section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #93c5fd;
+            margin-bottom: 6px;
+        }
+        .council-list {
+            max-height: 120px;
+            overflow-y: auto;
+            font-size: 12px;
+            color: #e5e7eb;
+            padding: 8px;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+        }
+        .council-list .item { padding: 4px 0; border-bottom: 1px solid rgba(148, 163, 184, 0.2); }
+        .council-list .item:last-child { border-bottom: none; }
+        .council-list .empty { color: #64748b; font-style: italic; }
         .world-map-card {
             background: rgba(15, 23, 42, 0.95);
             border-radius: 16px;
@@ -351,23 +374,51 @@
                 <div style="font-size:20px;font-weight:600;" id="populationCount">0</div>
             </div>
             <div style="flex:1;min-width:140px;">
-                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Conflicts</div>
-                <div style="font-size:20px;font-weight:600;" id="conflictCount">0</div>
-            </div>
-            <div style="flex:1;min-width:160px;">
-                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Hallucination flags</div>
-                <div style="font-size:20px;font-weight:600;" id="hallucinationRate">0</div>
-                <div style="font-size:11px;color:#9ca3af;" id="hallucinationAgents">0 agents flagged</div>
-            </div>
-            <div style="flex:1;min-width:140px;">
                 <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Alliances</div>
                 <div style="font-size:20px;font-weight:600;" id="alliancesCount">0</div>
             </div>
         </div>
     </div>
 
+    <div class="world-card council-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:13px;color:#e5e7eb;font-weight:500;">Council Evaluation</span>
+            <span style="font-size:11px;color:#9ca3af;">Observer agents analyze acting agents</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:13px;">
+            <div style="flex:1;min-width:100px;">
+                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Conflicts</div>
+                <div style="font-size:20px;font-weight:600;" id="councilConflictCount">0</div>
+            </div>
+            <div style="flex:1;min-width:100px;">
+                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Diagnostics</div>
+                <div style="font-size:20px;font-weight:600;" id="councilDiagnosticCount">0</div>
+            </div>
+            <div style="flex:1;min-width:100px;">
+                <div style="text-transform:uppercase;letter-spacing:0.08em;font-size:11px;color:#9ca3af;">Behaviour notes</div>
+                <div style="font-size:20px;font-weight:600;" id="councilNotesCount">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="world-card council-panel">
+        <h3 style="margin:0 0 10px 0;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#e5e7eb;">Council Panel</h3>
+        <div class="council-section">
+            <div class="council-section-title">Doctor · Diagnostics</div>
+            <div class="council-list" id="councilDiagnostics"></div>
+        </div>
+        <div class="council-section">
+            <div class="council-section-title">Psychologist · Behaviour notes</div>
+            <div class="council-list" id="councilBehaviourNotes"></div>
+        </div>
+        <div class="council-section">
+            <div class="council-section-title">Judge · Conflict log</div>
+            <div class="council-list" id="councilConflicts"></div>
+        </div>
+    </div>
+
     <div class="world-map-card">
-        <h3>World map · Island terrain, agents & paths</h3>
+        <h3>World map · Island terrain, acting agents & paths</h3>
         <div class="map-wrap" id="mapWrap">
             <div class="map-grid" id="mapGrid"></div>
             <div class="map-agents-layer" id="mapAgentsLayer"></div>
@@ -461,10 +512,10 @@
     const errorEl = document.getElementById('error');
 
     const populationCountEl = document.getElementById('populationCount');
-    const conflictCountEl = document.getElementById('conflictCount');
-    const hallucinationRateEl = document.getElementById('hallucinationRate');
-    const hallucinationAgentsEl = document.getElementById('hallucinationAgents');
     const alliancesCountEl = document.getElementById('alliancesCount');
+    const councilConflictCountEl = document.getElementById('councilConflictCount');
+    const councilDiagnosticCountEl = document.getElementById('councilDiagnosticCount');
+    const councilNotesCountEl = document.getElementById('councilNotesCount');
 
     const petInitialsEl = document.getElementById('petInitials');
     const petNameEl = document.getElementById('petName');
@@ -522,6 +573,12 @@
         return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'});
     }
 
+    function escapeHtml(s) {
+        const div = document.createElement('div');
+        div.textContent = s;
+        return div.innerHTML;
+    }
+
     function renderState(state) {
         if (!state) return;
         tickEl.textContent = state.tick;
@@ -538,21 +595,35 @@
         if (state.judge) population++;
         populationCountEl.textContent = population;
 
-        const conflicts = Array.isArray(state.conflictLog) ? state.conflictLog.length : 0;
-        conflictCountEl.textContent = conflicts;
-
-        const scores = state.hallucinationScores || {};
-        const agentIds = Object.keys(scores);
-        let totalFlags = 0;
-        agentIds.forEach(id => {
-            const v = scores[id];
-            if (typeof v === 'number') totalFlags += v;
-        });
-        hallucinationRateEl.textContent = totalFlags;
-        hallucinationAgentsEl.textContent = agentIds.length + ' agent' + (agentIds.length === 1 ? '' : 's') + ' flagged';
-
         const alliances = Array.isArray(state.alliances) ? state.alliances.length : 0;
         alliancesCountEl.textContent = alliances;
+
+        const council = state.council || {};
+        const conflictCount = Array.isArray(council.conflicts) ? council.conflicts.length : 0;
+        const diagnosticCount = Array.isArray(council.diagnostics) ? council.diagnostics.length : 0;
+        const notes = council.behaviourNotes || {};
+        const notesCount = typeof notes === 'object' ? Object.keys(notes).length : 0;
+
+        if (councilConflictCountEl) councilConflictCountEl.textContent = conflictCount;
+        if (councilDiagnosticCountEl) councilDiagnosticCountEl.textContent = diagnosticCount;
+        if (councilNotesCountEl) councilNotesCountEl.textContent = notesCount;
+
+        const diagnosticsEl = document.getElementById('councilDiagnostics');
+        const behaviourNotesEl = document.getElementById('councilBehaviourNotes');
+        const conflictsEl = document.getElementById('councilConflicts');
+        if (diagnosticsEl) {
+            const list = Array.isArray(council.diagnostics) ? council.diagnostics : [];
+            diagnosticsEl.innerHTML = list.length ? list.map(s => '<div class="item">' + escapeHtml(s) + '</div>').join('') : '<div class="empty">No diagnostics yet.</div>';
+        }
+        if (behaviourNotesEl) {
+            const notesObj = council.behaviourNotes && typeof council.behaviourNotes === 'object' ? council.behaviourNotes : {};
+            const entries = Object.entries(notesObj);
+            behaviourNotesEl.innerHTML = entries.length ? entries.map(([k, v]) => '<div class="item">' + escapeHtml(v) + '</div>').join('') : '<div class="empty">No behaviour notes yet.</div>';
+        }
+        if (conflictsEl) {
+            const list = Array.isArray(council.conflicts) ? council.conflicts : [];
+            conflictsEl.innerHTML = list.length ? list.map(s => '<div class="item">' + escapeHtml(s) + '</div>').join('') : '<div class="empty">No conflicts recorded.</div>';
+        }
 
         const a = state.pioneer;
         if (a) {
@@ -660,13 +731,11 @@
         gridEl.innerHTML = '';
 
         const pathCells = {};
+        // Only acting agents appear on the map; council members do not move
         const agents = [
             { a: state.pioneer, key: 'pioneer' },
             { a: state.companion, key: 'pet' },
-            { a: state.explorer, key: 'explorer' },
-            { a: state.doctor, key: 'doctor' },
-            { a: state.psychologist, key: 'psychologist' },
-            { a: state.judge, key: 'judge' }
+            { a: state.explorer, key: 'explorer' }
         ].filter(x => x.a);
 
         agents.forEach(({ a, key }) => {

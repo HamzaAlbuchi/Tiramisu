@@ -2,9 +2,7 @@ package com.example.demo.world;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class WorldState {
     public static final int GRID_WIDTH = 14;
@@ -20,10 +18,9 @@ public class WorldState {
     private Agent psychologist;
     private Agent judge;
     private final List<WorldEvent> events;
-    private final Map<String, Integer> hallucinationScores;
-    private final Map<String, String> behaviourNotes;
-    private final List<String> conflictLog;
     private final List<String> alliances;
+    /** Council: observer agents' evaluations (diagnostics, behaviour notes, conflicts). */
+    private final Council council;
     private int gridWidth;
     private int gridHeight;
     private List<List<String>> terrain;
@@ -33,10 +30,8 @@ public class WorldState {
         this.worldName = "Island-1";
         this.description = "A lonely island surrounded by endless ocean.";
         this.events = new ArrayList<>();
-        this.hallucinationScores = new HashMap<>();
-        this.behaviourNotes = new HashMap<>();
-        this.conflictLog = new ArrayList<>();
         this.alliances = new ArrayList<>();
+        this.council = new Council();
         this.gridWidth = GRID_WIDTH;
         this.gridHeight = GRID_HEIGHT;
         this.terrain = new ArrayList<>();
@@ -122,16 +117,8 @@ public class WorldState {
         this.events.add(event);
     }
 
-    public Map<String, Integer> getHallucinationScores() {
-        return hallucinationScores;
-    }
-
-    public Map<String, String> getBehaviourNotes() {
-        return behaviourNotes;
-    }
-
-    public List<String> getConflictLog() {
-        return conflictLog;
+    public Council getCouncil() {
+        return council;
     }
 
     public List<String> getAlliances() {

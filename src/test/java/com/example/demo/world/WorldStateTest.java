@@ -52,13 +52,13 @@ class WorldStateTest {
         }
 
         @Test
-        void hallucinationScoresIsEmpty() {
-            assertTrue(state.getHallucinationScores().isEmpty());
+        void councilDiagnosticsIsEmpty() {
+            assertTrue(state.getCouncil().getDiagnostics().isEmpty());
         }
 
         @Test
-        void conflictLogIsEmpty() {
-            assertTrue(state.getConflictLog().isEmpty());
+        void councilConflictsIsEmpty() {
+            assertTrue(state.getCouncil().getConflicts().isEmpty());
         }
 
         @Test
@@ -185,25 +185,26 @@ class WorldStateTest {
     }
 
     @Nested
-    @DisplayName("tracking maps and lists")
+    @DisplayName("council and tracking")
     class Tracking {
         @Test
-        void hallucinationScoresIsMutable() {
-            state.getHallucinationScores().put("agent-1", 2);
-            assertEquals(2, state.getHallucinationScores().get("agent-1"));
+        void councilDiagnosticsIsMutable() {
+            state.getCouncil().addDiagnostic("Test diagnostic.");
+            assertEquals(1, state.getCouncil().getDiagnostics().size());
+            assertEquals("Test diagnostic.", state.getCouncil().getDiagnostics().get(0));
         }
 
         @Test
-        void behaviourNotesIsMutable() {
-            state.getBehaviourNotes().put("agent-1", "Stable mood.");
-            assertEquals("Stable mood.", state.getBehaviourNotes().get("agent-1"));
+        void councilBehaviourNotesIsMutable() {
+            state.getCouncil().getBehaviourNotes().put("agent-1", "Stable mood.");
+            assertEquals("Stable mood.", state.getCouncil().getBehaviourNotes().get("agent-1"));
         }
 
         @Test
-        void conflictLogIsMutable() {
-            state.getConflictLog().add("Tick 1: Conflict.");
-            assertEquals(1, state.getConflictLog().size());
-            assertEquals("Tick 1: Conflict.", state.getConflictLog().get(0));
+        void councilConflictsIsMutable() {
+            state.getCouncil().addConflict("Tick 1: Conflict.");
+            assertEquals(1, state.getCouncil().getConflicts().size());
+            assertEquals("Tick 1: Conflict.", state.getCouncil().getConflicts().get(0));
         }
 
         @Test

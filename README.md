@@ -9,11 +9,21 @@ A **multi-agent island simulation** built with Java and Spring Boot. The project
 ## What This Project Does
 
 - **World model**: A 14×10 grid with terrain (water, sand, palm grove, grass, lagoon, rocky cliff). Time advances in discrete **ticks**.
-- **Agents**:
-  - **Eos** (first life), **Bony** (dog), and **Nova** (explorer) wander the island each tick; their “brains” produce a thought and an optional movement. Their trails are recorded as paths.
-  - **Dr. Selim** (doctor), **Dr. Mira** (psychologist), and **Arbitra** (judge) observe the world: the doctor tracks hallucination-style indicators, the psychologist keeps behaviour notes per agent, and the judge **detects conflicts** (when two agents share the same cell) and records them in the conflict log. An alliances list is available for future use.
-- **Brains**: Each agent has an `AgentBrain` (e.g. `RuleBasedPioneerBrain`, `RuleBasedPetBrain`, `RuleBasedExplorerBrain`). The interface returns an `AgentDecision` (thought, world-event text, optional movement). This makes it easy to **swap in LLM-backed brains** later without changing the rest of the simulation.
-- **Web UI** (`/world.html`): Dashboard (population, conflicts, hallucination flags, alliances), a **world map** (terrain, agent positions, movement paths, interaction highlights when two agents share a cell), agent cards with thoughts and memory counts, and a news-style event feed. You can step the simulation or run it automatically.
+- **Acting agents** (Eos, Bony, Nova): move on the grid, produce thoughts and world events; their trails are recorded as paths. Only they appear on the world map.
+- **Council** (observer agents): **Dr. Selim** (Doctor), **Dr. Mira** (Psychologist), and **Arbitra** (Judge) do **not** move. They evaluate the world after each tick and update the **Council** data structure:
+  - **Doctor**: observes reasoning anomalies, appends **diagnostics** (e.g. hallucination-style indicators).
+  - **Psychologist**: tracks behaviour patterns, records **behaviour notes** per acting agent.
+  - **Judge**: detects **conflicts** (e.g. two acting agents in the same cell) and appends to the conflict log.
+- **Council evaluation loop**: Each tick, acting agents decide and move first; then council agents analyze the new state and events and update `council.diagnostics`, `council.behaviourNotes`, and `council.conflicts`. The purpose is **AI-to-AI behavior verification**: the council evaluates and verifies the behavior of acting agents without moving in the world. The design supports later **LLM-powered council agents** (same `AgentBrain` interface; they simply do not return movement deltas and only write to `world.getCouncil()`).
+- **Web UI** (`/world.html`): World dashboard, **Council Evaluation** card (conflict/diagnostic/notes counts), **Council Panel** (Doctor diagnostics, Psychologist notes, Judge conflict log), world map (acting agents only), agent cards for Eos/Bony/Nova, and a news-style event feed.
+
+**Acting agents vs Council**
+
+| | Acting agents (Eos, Bony, Nova) | Council (Doctor, Psychologist, Judge) |
+|---|----------------------------------|---------------------------------------|
+| **Move on grid** | Yes | No |
+| **Role** | Generate actions, thoughts, events | Observe and evaluate; write to `council` |
+| **Data** | Position, path, thought, memory | `council.diagnostics`, `council.behaviourNotes`, `council.conflicts` |
 
 ---
 
@@ -76,8 +86,9 @@ src/main/java/com/example/demo/
     ├── Position.java             # (x, y) for path and grid
     ├── TerrainType.java          # WATER, SAND, PALM_GROVE, etc.
     ├── WorldEvent.java           # Tick + timestamp + description
-    ├── WorldState.java           # Tick, grid, terrain, agents, events, tracking maps
-    ├── WorldService.java         # Builds terrain, resets world, advances ticks, applies brains
+    ├── WorldState.java           # Tick, grid, terrain, agents, events, council
+    ├── Council.java              # Council data: diagnostics, behaviourNotes, conflicts
+    ├── WorldService.java         # Tick loop: acting agents then council evaluation
     ├── WorldController.java      # REST: /api/world/state, /reset, /step
     ├── RuleBasedPioneerBrain.java
     ├── RuleBasedPetBrain.java
@@ -105,7 +116,7 @@ src/test/java/com/example/demo/
 
 | Method | Path | Description |
 |--------|------|--------------|
-| GET  | `/api/world/state`   | Full world state (tick, terrain, agents with positions/paths, events, dashboard data). |
+| GET  | `/api/world/state`   | Full world state (tick, terrain, agents, events, **council**: `{ diagnostics, behaviourNotes, conflicts }`). |
 | POST | `/api/world/reset`   | Reset world: new terrain, agents at initial positions, cleared events. |
 | POST | `/api/world/step?ticks=N` | Advance simulation by `N` ticks (default 1); returns updated state. |
 
@@ -150,7 +161,8 @@ Runners use the Maven + Eclipse Temurin 8 image (Maven from the image, not the w
 
 - **LLM brains**: Implement `AgentBrain` with a class that calls your LLM API, maps the response to a thought + event + optional `(deltaX, deltaY)`, and returns an `AgentDecision`. In `WorldService`, assign that brain to the desired agent(s) instead of the rule-based brain.
 - **New roles**: Add an enum value to `AgentRole`, create an agent and a brain (rule-based or LLM), register them in `WorldService` and in the UI state/dashboard/map if needed.
-- **Conflicts / alliances**: The judge **detects conflicts** when two agents occupy the same grid cell and appends entries to `conflictLog`; the dashboard shows the count. Add logic elsewhere to record **alliances** (e.g. when two agents cooperate) and surface them in the UI.
+- **Council**: The **Council** holds `diagnostics`, `behaviourNotes`, and `conflicts`. Council agents (Doctor, Psychologist, Judge) do not move; they run after acting agents each tick. To add LLM-powered council agents, implement `AgentBrain` so that the decision only updates `world.getCouncil()` and returns a thought/event (no movement deltas).
+- **Alliances**: Add logic to record alliances (e.g. when two acting agents cooperate) and surface them in the UI.
 
 ---
 

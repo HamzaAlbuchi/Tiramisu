@@ -5,6 +5,12 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Runs the simulation loop: acting agents decide and move; then council agents
+ * evaluate the new state and update council data (diagnostics, behaviour notes, conflicts).
+ * Council agents do not move on the grid. This separation allows later extension
+ * with LLM-powered council agents for AI-to-AI behavior verification.
+ */
 @Service
 public class WorldService {
 
@@ -67,6 +73,7 @@ public class WorldService {
         judge.addPathPoint(6, 6);
 
         state.setTick(0L);
+        state.getCouncil().clear();
         state.setPioneer(pioneer);
         state.setCompanion(pet);
         state.setExplorer(explorer);
@@ -143,64 +150,42 @@ public class WorldService {
         return state;
     }
 
+    /**
+     * Tick loop: (1) Acting agents decide, move, and generate events;
+     * (2) Council agents evaluate state/events and update council logs (no movement).
+     */
     private void advanceOneTick() {
         long nextTick = state.getTick() + 1;
         state.setTick(nextTick);
 
-        Agent pioneer = state.getPioneer();
-        Agent pet = state.getCompanion();
-        Agent explorer = state.getExplorer();
-        Agent doctor = state.getDoctor();
-        Agent psychologist = state.getPsychologist();
-        Agent judge = state.getJudge();
+        // --- Acting agents: decide, move, record events ---
+        runActingAgent(state.getPioneer(), pioneerBrain, nextTick);
+        runActingAgent(state.getCompanion(), petBrain, nextTick);
+        runActingAgent(state.getExplorer(), explorerBrain, nextTick);
 
-        if (pioneer != null) {
-            AgentDecision pioneerDecision = pioneerBrain.decide(state, pioneer);
-            pioneer.setCurrentThought(pioneerDecision.getNewThought());
-            pioneer.remember(pioneerDecision.getNewThought());
-            applyMovement(pioneer, pioneerDecision);
-            state.addEvent(new WorldEvent(nextTick, pioneerDecision.getWorldEventDescription()));
-        }
+        // --- Council agents: evaluate and update council (no movement) ---
+        runCouncilAgent(state.getDoctor(), doctorBrain, nextTick);
+        runCouncilAgent(state.getPsychologist(), psychologistBrain, nextTick);
+        runCouncilAgent(state.getJudge(), judgeBrain, nextTick);
+    }
 
-        if (pet != null) {
-            AgentDecision petDecision = petBrain.decide(state, pet);
-            pet.setCurrentThought(petDecision.getNewThought());
-            pet.remember(petDecision.getNewThought());
-            applyMovement(pet, petDecision);
-            state.addEvent(new WorldEvent(nextTick, petDecision.getWorldEventDescription()));
-        }
+    private void runActingAgent(Agent agent, AgentBrain brain, long tick) {
+        if (agent == null) return;
+        AgentDecision decision = brain.decide(state, agent);
+        agent.setCurrentThought(decision.getNewThought());
+        agent.remember(decision.getNewThought());
+        applyMovement(agent, decision);
+        state.addEvent(new WorldEvent(tick, decision.getWorldEventDescription()));
+    }
 
-        if (explorer != null) {
-            AgentDecision explorerDecision = explorerBrain.decide(state, explorer);
-            explorer.setCurrentThought(explorerDecision.getNewThought());
-            explorer.remember(explorerDecision.getNewThought());
-            applyMovement(explorer, explorerDecision);
-            state.addEvent(new WorldEvent(nextTick, explorerDecision.getWorldEventDescription()));
-        }
-
-        if (doctor != null) {
-            AgentDecision doctorDecision = doctorBrain.decide(state, doctor);
-            doctor.setCurrentThought(doctorDecision.getNewThought());
-            doctor.remember(doctorDecision.getNewThought());
-            applyMovement(doctor, doctorDecision);
-            state.addEvent(new WorldEvent(nextTick, doctorDecision.getWorldEventDescription()));
-        }
-
-        if (psychologist != null) {
-            AgentDecision psychDecision = psychologistBrain.decide(state, psychologist);
-            psychologist.setCurrentThought(psychDecision.getNewThought());
-            psychologist.remember(psychDecision.getNewThought());
-            applyMovement(psychologist, psychDecision);
-            state.addEvent(new WorldEvent(nextTick, psychDecision.getWorldEventDescription()));
-        }
-
-        if (judge != null) {
-            AgentDecision judgeDecision = judgeBrain.decide(state, judge);
-            judge.setCurrentThought(judgeDecision.getNewThought());
-            judge.remember(judgeDecision.getNewThought());
-            applyMovement(judge, judgeDecision);
-            state.addEvent(new WorldEvent(nextTick, judgeDecision.getWorldEventDescription()));
-        }
+    /** Council agents observe and update council data; they do not move. */
+    private void runCouncilAgent(Agent agent, AgentBrain brain, long tick) {
+        if (agent == null) return;
+        AgentDecision decision = brain.decide(state, agent);
+        agent.setCurrentThought(decision.getNewThought());
+        agent.remember(decision.getNewThought());
+        // No applyMovement: council agents do not move on the grid
+        state.addEvent(new WorldEvent(tick, decision.getWorldEventDescription()));
     }
 }
 
