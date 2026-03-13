@@ -1,15 +1,20 @@
-FROM maven:3-jdk-8-alpine as builder
+# Build stage
+FROM maven:3.8-eclipse-temurin-8-alpine AS builder
+WORKDIR /build
 
-WORKDIR /usr/src/app
+COPY pom.xml .
+COPY src src
 
-COPY . /usr/src/app
-RUN mvn package
+RUN mvn -B package -DskipTests
 
-FROM openjdk:8-jre-alpine
+# Run stage (Railway sets PORT at runtime)
+FROM eclipse-temurin:8-jre-alpine
+WORKDIR /app
 
-COPY --from=builder /usr/src/app/target/*.jar /app.jar
+COPY --from=builder /build/target/*.jar app.jar
 
+# Default port when PORT not set (e.g. local docker run)
+ENV PORT=8080
 EXPOSE 8080
 
-ENTRYPOINT ["java"]
-CMD ["-jar", "/app.jar"]
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT} -jar app.jar"]

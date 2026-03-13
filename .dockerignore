@@ -1,0 +1,20 @@
+# Build output
+target/
+
+# Git
+.git
+.gitignore
+
+# IDE and OS
+.idea
+*.iml
+.vscode
+.DS_Store
+Thumbs.db
+
+# CI and docs (not needed in image)
+.gitlab-ci.yml
+*.md
+
+# Maven wrapper (image has mvn)
+.mvn/wrapper/maven-wrapper.jar

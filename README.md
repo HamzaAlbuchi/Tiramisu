@@ -109,6 +109,29 @@ src/test/java/com/example/demo/
 
 ---
 
+## Deploy on Railway
+
+The app is set up for [Railway](https://railway.app):
+
+1. **Port and binding**: `application.properties` uses `server.port=${PORT:8080}` and `server.address=0.0.0.0` so Railway’s proxy can reach the app.
+2. **Dockerfile**: Multi-stage build (Maven → Eclipse Temurin 8 JRE); the run stage uses `PORT` so the process listens on Railway’s assigned port.
+
+**Steps:**
+
+- Connect your repo to Railway and create a new service.
+- Railway will detect the **Dockerfile** and build the image, then run the container. No extra build/start commands are required.
+- Railway sets `PORT` automatically; the app reads it and listens on `0.0.0.0:PORT`.
+- After deploy, open your service URL (e.g. `https://your-app.up.railway.app`) and go to `/world.html` for the island UI.
+
+To test the image locally with a custom port:
+
+```bash
+docker build -t tiramisu .
+docker run -p 8080:8080 -e PORT=8080 tiramisu
+```
+
+---
+
 ## CI/CD
 
 The repository includes a **GitLab CI** pipeline (`.gitlab-ci.yml`):
