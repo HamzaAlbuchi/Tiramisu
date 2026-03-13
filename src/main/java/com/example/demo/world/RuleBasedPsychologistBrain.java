@@ -19,23 +19,31 @@ public class RuleBasedPsychologistBrain implements AgentBrain {
 
         if (pioneer != null) {
             String pioneerNote = "Eos appears " + inferMoodFromThought(pioneer.getCurrentThought()) + ".";
-            notes.put(pioneer.getId(), pioneerNote);
+            putIfDifferent(notes, pioneer.getId(), pioneerNote);
         }
 
         if (companion != null) {
             String petNote = "Bony shows " + inferEnergyFromThought(companion.getCurrentThought()) + " energy.";
-            notes.put(companion.getId(), petNote);
+            putIfDifferent(notes, companion.getId(), petNote);
         }
 
         if (explorer != null) {
             String explorerNote = "Nova appears " + inferMoodFromThought(explorer.getCurrentThought()) + ".";
-            notes.put(explorer.getId(), explorerNote);
+            putIfDifferent(notes, explorer.getId(), explorerNote);
         }
 
         String thought = "I study how each being copes with isolation, mapping out their mood and energy.";
         String event = "Behavioural Insight: Updated psychological notes for present agents.";
 
         return new AgentDecision(thought, event);
+    }
+
+    /** Only update the map if the new note is different from the previous one. */
+    private void putIfDifferent(Map<String, String> notes, String agentId, String newNote) {
+        String previous = notes.get(agentId);
+        if (previous == null || !previous.equals(newNote)) {
+            notes.put(agentId, newNote);
+        }
     }
 
     private String inferMoodFromThought(String thought) {
