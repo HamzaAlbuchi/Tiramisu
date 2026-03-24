@@ -13,9 +13,11 @@ interface Props {
   onSubmit: (v: DebateFormValues) => void;
   /** Single column + lighter chrome (dashboard: inputs least prominent). */
   variant?: "default" | "compact";
+  /** Merged onto the form element for page-level layout only. */
+  className?: string;
 }
 
-export function DebateForm({ loading, onSubmit, variant = "default" }: Props) {
+export function DebateForm({ loading, onSubmit, variant = "default", className }: Props) {
   const [topic, setTopic] = useState("Should cities prioritize public transit over cars?");
   const [rounds, setRounds] = useState(3);
   const [style, setStyle] = useState<string>("balanced");
@@ -25,9 +27,11 @@ export function DebateForm({ loading, onSubmit, variant = "default" }: Props) {
     "w-full rounded-lg border border-white/[0.08] bg-ink-950/40 px-3 py-2 text-sm text-slate-200 outline-none transition focus:border-white/20 focus:ring-1 focus:ring-white/15";
   const labelCls = compact ? "mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-500" : "mb-2 block text-sm font-medium text-mist";
 
+  const formClass = [compact ? "space-y-4" : "space-y-5", className].filter(Boolean).join(" ");
+
   return (
     <form
-      className={compact ? "space-y-4" : "space-y-5"}
+      className={formClass}
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit({ topic, rounds, style });
