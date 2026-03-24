@@ -1,8 +1,5 @@
-# Web service: Root Directory MUST be "frontend".
-# Uses THIS folder's Dockerfile only — not the repo-root image (which COPYs backend/).
+# Web service: Root Directory = frontend. Set "Config as code" to /frontend/railway.toml in Railway.
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
-watchPatterns = ["frontend/**"]
-
-# Serve is started from Dockerfile CMD; set VITE_API_BASE_URL in Railway Variables for production API URL.
+watchPatterns = ["/frontend/**", "/frontend/railway.toml"]

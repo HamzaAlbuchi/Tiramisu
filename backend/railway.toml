@@ -1,0 +1,3 @@
+# API service: in Railway set "Config as code" file to /backend/railway.toml (does not follow Root Directory).
+[build]
+watchPatterns = ["/Dockerfile", "/.dockerignore", "/backend/**", "/backend/railway.toml"]

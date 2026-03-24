@@ -71,14 +71,22 @@ docker run -p 8080:8080 -e PORT=8080 tiramisu-backend
 
 Railway does **not** create two services automatically: add both from the same GitHub repo.
 
+**Config file + watch paths:** Railway does **not** load `railway.toml` from your service Root Directory automatically. Point each service at **one** config file so watch patterns stay separate; otherwise both services may deploy on every push.
+
+| Service | Root Directory | Config as code path (service settings) |
+|--------|----------------|----------------------------------------|
+| API | *(empty)* | `/backend/railway.toml` |
+| Web | `frontend` | `/frontend/railway.toml` |
+
 1. **API**
    - New → GitHub repo → leave **Root Directory** empty (repo root).
-   - Uses root `Dockerfile` + `railway.toml` (Docker builder). No `Railpack` inference needed.
+   - Set **Config as code** → `/backend/railway.toml` (watch patterns: root `Dockerfile`, `backend/**` only).
+   - Root `Dockerfile` is auto-detected for the build.
 
 2. **Web (Vite SPA)**
-   - New → **same repo** → set **Root Directory** to `frontend`.
-   - Uses `frontend/Dockerfile` + `frontend/railway.toml` (not the repo-root Docker image, which expects a `backend/` folder in context).
-   - If you see `"/backend": not found`, the frontend job is using the **wrong Dockerfile** — confirm Root Directory is `frontend` and redeploy.
+   - New → **same repo** → **Root Directory** `frontend`.
+   - Set **Config as code** → `/frontend/railway.toml` (`Dockerfile` builder; deploy only when `frontend/**` changes).
+   - If you see `"/backend": not found`, the web service is using the **repo-root** image — confirm Root Directory is `frontend` and that this config path is set.
 
 **Variables**
 

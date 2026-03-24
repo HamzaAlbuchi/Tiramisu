@@ -1,6 +1,0 @@
-# API service only: Root Directory EMPTY (repo root).
-# Do not set builder here — a global DOCKERFILE builder breaks the second service, which uses
-# frontend/ context only (repo-root Dockerfile runs COPY backend/ and fails there).
-# Railway auto-detects the root Dockerfile for this service.
-[build]
-watchPatterns = ["Dockerfile", "railway.toml", ".dockerignore", "backend/**"]
