@@ -7,3 +7,8 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+interface Window {
+  /** Set in public/api-config.js; overwritten at Docker container start from VITE_API_BASE_URL. */
+  __TIRAMISU_API_BASE__?: string;
+}

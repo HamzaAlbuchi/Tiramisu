@@ -84,7 +84,7 @@ Railway does **not** create two services automatically: add both from the same G
 
 | Service | Variable | Purpose |
 |--------|-----------|---------|
-| Web | `VITE_API_BASE_URL` | Public URL of the **API** service, e.g. `https://your-api.up.railway.app` (no trailing slash). Required at **build** time. |
+| Web | `VITE_API_BASE_URL` | Public origin of the **API** (e.g. `https://backend-production-4ceb.up.railway.app`, no trailing slash). With the **Dockerfile** frontend, it is applied when the **container starts** (see `api-config.js`); change the var → restart/redeploy. |
 | API | `APP_CORS_ORIGINS` | Comma-separated list of allowed origins; include your **Web** URL, e.g. `https://your-web.up.railway.app`. |
 
 Deploy **API** first, copy its public URL into `VITE_API_BASE_URL` on the Web service, redeploy Web. Set `APP_CORS_ORIGINS` on the API to include the Web URL so the browser can call the API.
