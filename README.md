@@ -2,7 +2,7 @@
 
 A **Java / Spring Boot** project with two experiences:
 
-1. **Main UI (`/`, `index.html`)** — **Multi-model debate**: you enter a topic and a number of exchange turns; two stub “models” (Model A / Model B) alternate; a **judge** returns a verdict with **hallucination bias** and **accuracy** notes (plus heuristic scores). Replace `DebateService` with real LLM calls when you are ready.
+1. **Main UI (`/`, `index.html` + `styles.css` + `app.js`)** — **LLM Evaluation Dashboard**: stub run uses **GPT-4o** (Pro) vs **Claude Sonnet** (Against); responses include **evaluation breakdown** (five rubric scores per model), **judge analysis** (strengths/weaknesses, final reasoning), **verdict type** (clear/slight win or draw), and **confidence**. Replace `DebateService` with real LLM calls when you are ready.
 2. **Secondary UI (`/world.html`)** — **Island agent simulation** (Island-1): acting agents on a grid, council evaluation, and a monitoring dashboard.
 
 The island simulation is prepared for pluggable **LLM brains** so each agent can later be driven by a different language model.
@@ -130,7 +130,7 @@ src/test/java/com/example/demo/
 | Method | Path | Description |
 |--------|------|--------------|
 | GET  | `/` or `/index.html` | Main debate UI (static). |
-| POST | `/api/debate/run`    | Body: `{ "topic": "string", "exchanges": 6 }` — transcript + judge **verdict** (hallucination / accuracy fields). |
+| POST | `/api/debate/run`    | Body: `{ "topic", "exchanges" }` — returns **model identities**, **evaluationBreakdown** (five rubric scores per model 0–10), **verdict** (winnerKey, verdictType, confidence, judgeAnalysis, hallucination / accuracy). |
 | GET  | `/api/world/state`   | Full world state (tick, terrain, agents, events, **council**: `{ diagnostics, behaviourNotes, conflicts }`). |
 | POST | `/api/world/reset`   | Reset world: new terrain, agents at initial positions, cleared events. |
 | POST | `/api/world/step?ticks=N` | Advance simulation by `N` ticks (default 1); returns updated state. |

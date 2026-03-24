@@ -1,26 +1,37 @@
 package com.example.demo.debate;
 
 /**
- * Judge output after the debate: qualitative verdict plus structured signals.
- * Hallucination / accuracy fields are heuristic in the stub; swap for model-based scoring with LLMs.
+ * Judge output: legacy summary lines, risk/accuracy scores, verdict classification,
+ * confidence, and structured analysis. Swap generation for real LLM judge output.
  */
 public class DebateVerdict {
 
     private final String summary;
     private final String hallucinationBias;
     private final String accuracyAssessment;
-    /** 0–1 heuristic: higher = more absolute / ungrounded phrasing detected in transcript. */
     private final double hallucinationRiskScore;
-    /** 0–1 heuristic: higher = more balanced, evidence-style language. */
     private final double accuracySignalScore;
+    /** CLEAR_WIN, SLIGHT_WIN, or DRAW */
+    private final String verdictType;
+    /** A, B, or DRAW */
+    private final String winnerKey;
+    /** 0–1 */
+    private final double confidence;
+    private final JudgeAnalysis judgeAnalysis;
 
     public DebateVerdict(String summary, String hallucinationBias, String accuracyAssessment,
-                         double hallucinationRiskScore, double accuracySignalScore) {
+                         double hallucinationRiskScore, double accuracySignalScore,
+                         String verdictType, String winnerKey, double confidence,
+                         JudgeAnalysis judgeAnalysis) {
         this.summary = summary;
         this.hallucinationBias = hallucinationBias;
         this.accuracyAssessment = accuracyAssessment;
         this.hallucinationRiskScore = hallucinationRiskScore;
         this.accuracySignalScore = accuracySignalScore;
+        this.verdictType = verdictType;
+        this.winnerKey = winnerKey;
+        this.confidence = confidence;
+        this.judgeAnalysis = judgeAnalysis;
     }
 
     public String getSummary() {
@@ -41,5 +52,21 @@ public class DebateVerdict {
 
     public double getAccuracySignalScore() {
         return accuracySignalScore;
+    }
+
+    public String getVerdictType() {
+        return verdictType;
+    }
+
+    public String getWinnerKey() {
+        return winnerKey;
+    }
+
+    public double getConfidence() {
+        return confidence;
+    }
+
+    public JudgeAnalysis getJudgeAnalysis() {
+        return judgeAnalysis;
     }
 }

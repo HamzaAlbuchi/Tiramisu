@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AI Debate Arena · Tiramisu</title>
+    <title>LLM Evaluation Dashboard · Tiramisu</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <!-- Sticky glass header: brand + nav to secondary simulation -->
+    <!-- LLM Evaluation Dashboard: structured metrics + debate transcript (vanilla stack). -->
     <header class="site-header">
         <div class="site-header__brand">
-            <h1 class="site-header__title">AI Debate Arena</h1>
-            <span class="site-header__tag">Tiramisu · live model face-off</span>
+            <h1 class="site-header__title">LLM Evaluation Dashboard</h1>
+            <span class="site-header__tag">Tiramisu · model comparison &amp; judge rubric</span>
         </div>
         <nav class="site-header__nav">
             <a href="/world.html">Agent World</a>
@@ -22,7 +22,6 @@
     </header>
 
     <div class="app">
-        <!-- Setup: topic pill input, primary CTA, collapsible settings -->
         <section class="input-hero" aria-label="Debate setup">
             <div class="topic-wrap">
                 <textarea
@@ -52,7 +51,7 @@
                             <span class="settings-label">Rounds</span>
                             <input type="range" class="rounds-slider" id="roundsSlider" min="2" max="24" value="6" aria-valuemin="2" aria-valuemax="24" aria-valuenow="6">
                             <span class="rounds-value" id="roundsValue">6</span>
-                            <span style="font-size:12px;color:var(--text-muted);">exchanges</span>
+                            <span class="settings-meta">exchanges</span>
                         </div>
                         <div class="settings-row">
                             <label class="toggle">
@@ -64,21 +63,26 @@
                 </div>
             </div>
 
-            <p class="hint">Two agents alternate on your topic; a judge scores hallucination risk and accuracy (API: <code style="font-size:11px;opacity:0.8;">POST /api/debate/run</code>). Style presets are UI-only until the backend reads them.</p>
+            <p class="hint">Runs a stub debate between <strong>GPT-4o</strong> (Pro) and <strong>Claude Sonnet</strong> (Against), then surfaces rubric scores and judge analysis. Wire <code class="hint-code">POST /api/debate/run</code> to real models when ready.</p>
         </section>
 
-        <!-- Main grid: debate chat + judge (stacks on small screens) -->
         <div class="main-layout">
             <section class="debate-arena is-idle" id="debateArena" aria-live="polite">
                 <div class="debate-arena__empty">
-                    <strong>Ready when you are</strong>
-                    <span>Enter a topic and hit Start Debate to open the arena.</span>
+                    <strong>Evaluation idle</strong>
+                    <span>Start a run to populate the timeline, transcript, and judge panel.</span>
+                </div>
+
+                <!-- Horizontal timeline: one node per debate round (A+B). Filled as turns complete. -->
+                <div class="debate-timeline-wrap" id="timelineWrap" hidden>
+                    <span class="debate-timeline-label">Debate timeline</span>
+                    <div class="debate-timeline" id="debateTimeline" role="list" aria-label="Debate rounds"></div>
                 </div>
 
                 <div class="turn-indicator" id="turnIndicator">Waiting to start...</div>
 
                 <div class="typing-indicator" id="typingIndicator" aria-hidden="true">
-                    <span id="typingAgent">Agent A is thinking</span>
+                    <span id="typingAgent">Model is thinking</span>
                     <div class="typing-dots" aria-hidden="true"><span></span><span></span><span></span></div>
                 </div>
 
@@ -87,7 +91,7 @@
                 <div class="debate-toolbar">
                     <button type="button" class="btn btn--ghost btn--small" id="btnReplay" disabled>Replay Debate</button>
                     <button type="button" class="btn btn--ghost btn--small" id="btnReset">Reset</button>
-                    <select id="copyFormat" class="btn btn--ghost btn--small" style="padding:8px 12px;border-radius:10px;cursor:pointer;background:rgba(15,23,42,0.8);color:var(--text);border:1px solid var(--border);font-size:12px;">
+                    <select id="copyFormat" class="select-ghost" aria-label="Copy format">
                         <option value="text">Copy as text</option>
                         <option value="json">Copy as JSON</option>
                     </select>
@@ -95,19 +99,23 @@
                 </div>
             </section>
 
-            <!-- Judge: slides in after debate; verdict hero + bars + reasoning -->
-            <aside class="judge-panel" id="judgePanel" aria-label="Judge verdict">
+            <aside class="judge-panel" id="judgePanel" aria-label="Judge evaluation">
                 <h2 class="judge-panel__title">Judge</h2>
-                <div class="verdict-hero verdict-hero--a" id="verdictHero">
+
+                <div class="verdict-hero verdict-hero--a verdict-hero--anim" id="verdictHero">
                     <span class="verdict-hero__emoji" aria-hidden="true">🏆</span>
-                    <p class="verdict-hero__winner" id="verdictWinner">Agent A Wins</p>
-                    <p class="verdict-hero__sub" id="verdictSub">Awaiting verdict...</p>
+                    <p class="verdict-hero__winner" id="verdictWinner">—</p>
+                    <p class="verdict-hero__type" id="verdictType">—</p>
+                    <p class="verdict-hero__confidence" id="verdictConfidence">—</p>
+                    <p class="verdict-hero__sub" id="verdictSub">Awaiting evaluation…</p>
                 </div>
 
-                <div class="score-bars">
+                <div class="metric-legacy">
                     <div class="score-bar-row">
                         <div class="score-bar-label">
-                            <span>Hallucination risk</span>
+                            <span>Hallucination risk
+                                <span class="info-tip" tabindex="0" data-tooltip="Estimated from absolute claims and vague assertions in the combined transcript. Not a substitute for fact-checking." title="Estimated from absolute claims and vague assertions in the combined transcript.">ℹ️</span>
+                            </span>
                             <span id="barRiskPct">0%</span>
                         </div>
                         <div class="score-bar-track">
@@ -116,7 +124,9 @@
                     </div>
                     <div class="score-bar-row">
                         <div class="score-bar-label">
-                            <span>Accuracy signal</span>
+                            <span>Accuracy signal
+                                <span class="info-tip" tabindex="0" data-tooltip="Estimated from hedging, specificity, and internal consistency cues in the transcript." title="Estimated from hedging, specificity, and internal consistency cues.">ℹ️</span>
+                            </span>
                             <span id="barAccPct">0%</span>
                         </div>
                         <div class="score-bar-track">
@@ -125,17 +135,31 @@
                     </div>
                 </div>
 
-                <div class="reasoning-card">
-                    <h4>Summary</h4>
-                    <p id="reasoningSummary" style="margin:0;color:var(--text);">—</p>
+                <section class="eval-breakdown" id="evalBreakdown" aria-labelledby="evalBreakdownTitle">
+                    <h3 class="eval-breakdown__title" id="evalBreakdownTitle">Evaluation breakdown</h3>
+                    <p class="eval-breakdown__hint">Scores 0–10 per model (stub heuristics)</p>
+                    <div class="eval-breakdown__cols">
+                        <div class="eval-col eval-col--a" id="evalColA"></div>
+                        <div class="eval-col eval-col--b" id="evalColB"></div>
+                    </div>
+                </section>
+
+                <section class="judge-analysis" aria-labelledby="judgeAnalysisTitle">
+                    <h3 class="judge-analysis__title" id="judgeAnalysisTitle">Judge analysis</h3>
+                    <div class="analysis-grid" id="analysisGrid"></div>
+                </section>
+
+                <div class="reasoning-card reasoning-card--compact">
+                    <h4>Legacy summary</h4>
+                    <p id="reasoningSummary" class="reasoning-p">—</p>
                 </div>
-                <div class="reasoning-card" style="margin-top:12px;">
+                <div class="reasoning-card reasoning-card--compact">
                     <h4>Hallucination &amp; bias</h4>
-                    <p id="reasoningHalluc" style="margin:0;">—</p>
+                    <p id="reasoningHalluc" class="reasoning-p">—</p>
                 </div>
-                <div class="reasoning-card" style="margin-top:12px;">
+                <div class="reasoning-card reasoning-card--compact">
                     <h4>Accuracy</h4>
-                    <p id="reasoningAcc" style="margin:0;">—</p>
+                    <p id="reasoningAcc" class="reasoning-p">—</p>
                 </div>
             </aside>
         </div>

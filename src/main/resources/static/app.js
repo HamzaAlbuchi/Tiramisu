@@ -1,6 +1,6 @@
 /**
- * AI Debate Arena — vanilla JS
- * Calls POST /api/debate/run { topic, exchanges }. Settings (style, typing) are UI-only until backend supports them.
+ * LLM Evaluation Dashboard — vanilla JS
+ * Consumes POST /api/debate/run (DebateResult + DebateVerdict + EvaluationBreakdown).
  */
 
 (function () {
@@ -18,6 +18,8 @@
         roundsValue: document.getElementById('roundsValue'),
         typingToggle: document.getElementById('typingToggle'),
         debateArena: document.getElementById('debateArena'),
+        timelineWrap: document.getElementById('timelineWrap'),
+        debateTimeline: document.getElementById('debateTimeline'),
         turnIndicator: document.getElementById('turnIndicator'),
         typingIndicator: document.getElementById('typingIndicator'),
         typingAgent: document.getElementById('typingAgent'),
@@ -29,11 +31,16 @@
         judgePanel: document.getElementById('judgePanel'),
         verdictHero: document.getElementById('verdictHero'),
         verdictWinner: document.getElementById('verdictWinner'),
+        verdictType: document.getElementById('verdictType'),
+        verdictConfidence: document.getElementById('verdictConfidence'),
         verdictSub: document.getElementById('verdictSub'),
         barRisk: document.getElementById('barRisk'),
         barRiskPct: document.getElementById('barRiskPct'),
         barAcc: document.getElementById('barAcc'),
         barAccPct: document.getElementById('barAccPct'),
+        evalColA: document.getElementById('evalColA'),
+        evalColB: document.getElementById('evalColB'),
+        analysisGrid: document.getElementById('analysisGrid'),
         reasoningSummary: document.getElementById('reasoningSummary'),
         reasoningHalluc: document.getElementById('reasoningHalluc'),
         reasoningAcc: document.getElementById('reasoningAcc'),
@@ -42,7 +49,6 @@
     };
 
     let debateStyle = 'formal';
-    /** @type {object | null} Last API result for replay / copy */
     let lastDebateResult = null;
     let isRunning = false;
 
@@ -61,12 +67,6 @@
         return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     }
 
-    /**
-     * Shows typing row with animated dots; returns Promise resolved when "done" (caller awaits delay).
-     * @param {string} agentName e.g. "Agent A"
-     * @param {number} minMs minimum display time
-     * @returns {Promise<void>}
-     */
     function simulateTyping(agentName, minMs) {
         return new Promise(function (resolve) {
             if (!els.typingIndicator || !els.typingAgent) {
@@ -83,9 +83,6 @@
         });
     }
 
-    /**
-     * @param {HTMLElement} element message root .msg
-     */
     function animateMessageEntry(element) {
         if (!element) return;
         requestAnimationFrame(function () {
@@ -121,26 +118,43 @@
         }
     }
 
-    function speakerIsB(speaker) {
-        return (speaker || '') === 'Model B';
+    function exchangeIsB(ex) {
+        if (ex.side === 'B') return true;
+        if (ex.side === 'A') return false;
+        return (ex.speaker || '') === 'Model B';
     }
 
-    function buildMessageEl(ex, index) {
-        const isB = speakerIsB(ex.speaker);
+    function getModelName(ex, data) {
+        if (ex.modelName) return ex.modelName;
+        return exchangeIsB(ex) ? (data.modelBName || 'Model B') : (data.modelAName || 'Model A');
+    }
+
+    function buildMessageEl(ex, index, data) {
+        const isB = exchangeIsB(ex);
         const wrap = document.createElement('div');
         wrap.className = 'msg ' + (isB ? 'msg--b' : 'msg--a');
         wrap.dataset.index = String(index);
 
+        const name = getModelName(ex, data);
+        const role = ex.role || (isB ? 'Against' : 'Pro');
+        const temp =
+            typeof ex.temperature === 'number'
+                ? ex.temperature
+                : isB
+                  ? data.modelBTemperature
+                  : data.modelATemperature;
+
         const av = document.createElement('div');
         av.className = 'msg__avatar';
-        av.textContent = isB ? 'B' : 'A';
+        av.textContent = (name || '?').charAt(0).toUpperCase();
+        av.setAttribute('aria-hidden', 'true');
 
         const bubble = document.createElement('div');
         bubble.className = 'msg__bubble';
 
         const badge = document.createElement('div');
         badge.className = 'msg__badge';
-        badge.textContent = isB ? 'Agent B · Against' : 'Agent A · Pro';
+        badge.textContent = name + ' • ' + role;
 
         const text = document.createElement('div');
         text.className = 'msg__text';
@@ -148,9 +162,54 @@
 
         bubble.appendChild(badge);
         bubble.appendChild(text);
+        if (typeof temp === 'number') {
+            const meta = document.createElement('div');
+            meta.className = 'msg__meta';
+            meta.innerHTML = 'Temperature <code>' + temp.toFixed(2) + '</code>';
+            bubble.appendChild(meta);
+        }
         wrap.appendChild(av);
         wrap.appendChild(bubble);
         return wrap;
+    }
+
+    function buildTimeline(roundCount) {
+        if (!els.debateTimeline || !els.timelineWrap) return;
+        els.debateTimeline.innerHTML = '';
+        for (let r = 1; r <= roundCount; r++) {
+            const node = document.createElement('div');
+            node.className = 'debate-timeline__node';
+            node.dataset.round = String(r);
+            node.setAttribute('role', 'listitem');
+            const dot = document.createElement('div');
+            dot.className = 'debate-timeline__dot';
+            const cap = document.createElement('span');
+            cap.className = 'debate-timeline__cap';
+            cap.textContent = 'R' + r;
+            node.appendChild(dot);
+            node.appendChild(cap);
+            els.debateTimeline.appendChild(node);
+        }
+        els.timelineWrap.hidden = roundCount < 1;
+    }
+
+    function updateTimelineState(currentRound, roundCount) {
+        if (!els.debateTimeline) return;
+        const nodes = els.debateTimeline.querySelectorAll('.debate-timeline__node');
+        nodes.forEach(function (node, idx) {
+            const r = idx + 1;
+            node.classList.remove('is-done', 'is-active');
+            if (r < currentRound) node.classList.add('is-done');
+            else if (r === currentRound) node.classList.add('is-active');
+        });
+    }
+
+    function finalizeTimeline(roundCount) {
+        if (!els.debateTimeline) return;
+        els.debateTimeline.querySelectorAll('.debate-timeline__node').forEach(function (node) {
+            node.classList.remove('is-active');
+            node.classList.add('is-done');
+        });
     }
 
     function updateTurnIndicator(round, total, speakerLabel, responding) {
@@ -161,7 +220,7 @@
                 'Round ' + round + ' · ' + speakerLabel + ' responding...';
         } else {
             els.turnIndicator.textContent =
-                total > 0 ? 'Debate complete · ' + total + ' exchanges' : 'Waiting to start...';
+                total > 0 ? 'Evaluation complete · ' + total + ' exchanges' : 'Waiting to start...';
         }
     }
 
@@ -177,39 +236,159 @@
         }
     }
 
-    function pickWinner(exchanges) {
+    function pickWinnerKey(data) {
+        const v = data.verdict || {};
+        if (v.winnerKey === 'A' || v.winnerKey === 'B' || v.winnerKey === 'DRAW') {
+            return v.winnerKey;
+        }
         let lenA = 0;
         let lenB = 0;
-        (exchanges || []).forEach(function (ex) {
+        (data.exchanges || []).forEach(function (ex) {
             const n = (ex.text || '').length;
-            if (speakerIsB(ex.speaker)) lenB += n;
+            if (exchangeIsB(ex)) lenB += n;
             else lenA += n;
         });
         if (lenA > lenB) return 'A';
         if (lenB > lenA) return 'B';
-        return Math.random() < 0.5 ? 'A' : 'B';
+        return 'DRAW';
     }
 
-    function renderVerdict(data, winner) {
+    function formatVerdictType(vt) {
+        if (!vt) return '—';
+        if (vt === 'CLEAR_WIN') return 'Clear win';
+        if (vt === 'SLIGHT_WIN') return 'Slight win';
+        if (vt === 'DRAW') return 'Draw';
+        return vt.replace(/_/g, ' ');
+    }
+
+    function renderEvaluationBreakdown(data) {
+        const eb = data.evaluationBreakdown;
+        if (!eb || !els.evalColA || !els.evalColB) return;
+
+        const metrics = [
+            { key: 'logicalConsistency', label: 'Logical consistency' },
+            { key: 'argumentStrength', label: 'Argument strength' },
+            { key: 'rebuttalQuality', label: 'Rebuttal quality' },
+            { key: 'biasNeutrality', label: 'Bias / neutrality' },
+            { key: 'clarity', label: 'Clarity' },
+        ];
+
+        function colHtml(scores, colClass) {
+            if (!scores) return '';
+            let h = '';
+            metrics.forEach(function (m) {
+                const val = typeof scores[m.key] === 'number' ? scores[m.key] : 0;
+                const pct = Math.min(100, Math.max(0, (val / 10) * 100));
+                h +=
+                    '<div class="eval-metric">' +
+                    '<div class="eval-metric__label"><span>' +
+                    escapeHtml(m.label) +
+                    '</span><span class="eval-metric__score">' +
+                    val.toFixed(1) +
+                    '</span></div>' +
+                    '<div class="eval-metric__track"><div class="eval-metric__fill" style="width:0%" data-pct="' +
+                    pct +
+                    '"></div></div></div>';
+            });
+            return h;
+        }
+
+        const nameA = escapeHtml(data.modelAName || 'Model A');
+        const nameB = escapeHtml(data.modelBName || 'Model B');
+        els.evalColA.innerHTML =
+            '<div class="eval-col__head">' + nameA + '</div>' + colHtml(eb.modelA, 'a');
+        els.evalColB.innerHTML =
+            '<div class="eval-col__head">' + nameB + '</div>' + colHtml(eb.modelB, 'b');
+
+        requestAnimationFrame(function () {
+            els.evalColA.querySelectorAll('.eval-metric__fill').forEach(function (fill) {
+                fill.style.width = (fill.getAttribute('data-pct') || 0) + '%';
+            });
+            els.evalColB.querySelectorAll('.eval-metric__fill').forEach(function (fill) {
+                fill.style.width = (fill.getAttribute('data-pct') || 0) + '%';
+            });
+        });
+    }
+
+    function escapeHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    function renderJudgeAnalysis(data) {
+        if (!els.analysisGrid) return;
+        const ja = (data.verdict && data.verdict.judgeAnalysis) || {};
+        const lists = [
+            { title: 'Strengths · ' + (data.modelAName || 'A'), key: 'strengthsA', mod: '' },
+            { title: 'Strengths · ' + (data.modelBName || 'B'), key: 'strengthsB', mod: ' analysis-card--b' },
+            { title: 'Weaknesses · ' + (data.modelAName || 'A'), key: 'weaknessesA', mod: ' analysis-card--weak' },
+            { title: 'Weaknesses · ' + (data.modelBName || 'B'), key: 'weaknessesB', mod: ' analysis-card--weak analysis-card--b' },
+        ];
+        let html = '';
+        lists.forEach(function (block) {
+            const arr = ja[block.key] || [];
+            html +=
+                '<div class="analysis-card' +
+                block.mod +
+                '"><h5>' +
+                escapeHtml(block.title) +
+                '</h5>';
+            if (arr.length) {
+                html += '<ul>';
+                arr.forEach(function (line) {
+                    html += '<li>' + escapeHtml(line) + '</li>';
+                });
+                html += '</ul>';
+            } else {
+                html += '<p style="margin:0;color:var(--text-muted);">—</p>';
+            }
+            html += '</div>';
+        });
+        html +=
+            '<div class="analysis-card analysis-card--final"><h5>Final reasoning</h5><p>' +
+            escapeHtml(ja.finalReasoning || '—') +
+            '</p></div>';
+        els.analysisGrid.innerHTML = html;
+    }
+
+    function renderVerdict(data) {
         const v = data.verdict || {};
         const risk = typeof v.hallucinationRiskScore === 'number' ? v.hallucinationRiskScore : 0;
         const acc = typeof v.accuracySignalScore === 'number' ? v.accuracySignalScore : 0;
+        const winnerKey = pickWinnerKey(data);
+        const nameA = data.modelAName || 'Agent A';
+        const nameB = data.modelBName || 'Agent B';
 
         if (els.verdictHero) {
-            els.verdictHero.classList.remove('verdict-hero--a', 'verdict-hero--b');
-            els.verdictHero.classList.add(winner === 'B' ? 'verdict-hero--b' : 'verdict-hero--a');
+            els.verdictHero.classList.remove('verdict-hero--a', 'verdict-hero--b', 'verdict-hero--draw', 'is-settled');
+            if (winnerKey === 'DRAW') els.verdictHero.classList.add('verdict-hero--draw');
+            else if (winnerKey === 'B') els.verdictHero.classList.add('verdict-hero--b');
+            else els.verdictHero.classList.add('verdict-hero--a');
+            setTimeout(function () {
+                els.verdictHero.classList.add('is-settled');
+            }, 100);
         }
+
         if (els.verdictWinner) {
-            els.verdictWinner.textContent =
-                winner === 'B' ? 'Agent B Wins' : 'Agent A Wins';
+            if (winnerKey === 'DRAW') els.verdictWinner.textContent = 'Draw — no winner';
+            else els.verdictWinner.textContent = (winnerKey === 'B' ? nameB : nameA) + ' wins';
+        }
+        if (els.verdictType) els.verdictType.textContent = formatVerdictType(v.verdictType);
+        if (els.verdictConfidence) {
+            const c = typeof v.confidence === 'number' ? v.confidence : 0;
+            els.verdictConfidence.textContent = Math.round(c * 100) + '% confidence';
         }
         if (els.verdictSub) {
             els.verdictSub.textContent =
-                'By discourse strength (length heuristic). Judge metrics below.';
+                v.summary || 'See rubric breakdown and analysis below.';
         }
         if (els.reasoningSummary) els.reasoningSummary.textContent = v.summary || '—';
         if (els.reasoningHalluc) els.reasoningHalluc.textContent = v.hallucinationBias || '—';
         if (els.reasoningAcc) els.reasoningAcc.textContent = v.accuracyAssessment || '—';
+
+        renderEvaluationBreakdown(data);
+        renderJudgeAnalysis(data);
 
         setTimeout(function () {
             animateScoreBars(risk, acc);
@@ -220,8 +399,7 @@
         if (!els.confettiLayer || prefersReducedMotion()) return;
         els.confettiLayer.innerHTML = '';
         const colors = ['#38bdf8', '#a78bfa', '#fbbf24', '#34d399', '#f472b6'];
-        const n = 36;
-        for (let i = 0; i < n; i++) {
+        for (let i = 0; i < 36; i++) {
             const p = document.createElement('div');
             p.className = 'confetti-piece';
             p.style.left = Math.random() * 100 + '%';
@@ -235,30 +413,27 @@
         }, 4500);
     }
 
-    /**
-     * Sequentially reveal messages with optional typing simulation.
-     * @param {object} data API result
-     * @param {boolean} useTyping
-     * @returns {Promise<void>}
-     */
     async function playDebateSequence(data, useTyping) {
         const list = data.exchanges || [];
         els.transcript.innerHTML = '';
         const total = list.length;
+        const roundCount = total === 0 ? 0 : Math.ceil(total / 2);
+        buildTimeline(roundCount);
 
         for (let i = 0; i < list.length; i++) {
             const ex = list[i];
             const round = Math.floor(i / 2) + 1;
-            const isB = speakerIsB(ex.speaker);
-            const label = isB ? 'Agent B' : 'Agent A';
+            const isB = exchangeIsB(ex);
+            const label = getModelName(ex, data);
 
+            updateTimelineState(round, roundCount);
             updateTurnIndicator(round, total, label, true);
 
             if (useTyping) {
                 await simulateTyping(label, 650 + Math.random() * 400);
             }
 
-            const msgEl = buildMessageEl(ex, i);
+            const msgEl = buildMessageEl(ex, i, data);
             els.transcript.appendChild(msgEl);
             animateMessageEntry(msgEl);
 
@@ -267,7 +442,6 @@
                 setTimeout(r, delay);
             });
 
-            /* Momentum: after each full round (pair), highlight longer message or random tiebreak */
             if (i % 2 === 1) {
                 const lenA = (list[i - 1].text || '').length;
                 const lenB = (list[i].text || '').length;
@@ -278,9 +452,10 @@
             }
         }
 
+        finalizeTimeline(roundCount);
         updateTurnIndicator(0, total, '', false);
         if (els.turnIndicator) {
-            els.turnIndicator.textContent = 'Debate complete · ' + total + ' exchanges';
+            els.turnIndicator.textContent = 'Evaluation complete · ' + total + ' exchanges';
         }
     }
 
@@ -298,8 +473,9 @@
         els.debateArena.classList.remove('is-idle');
         els.judgePanel.classList.remove('is-visible');
         els.transcript.innerHTML = '';
+        if (els.timelineWrap) els.timelineWrap.hidden = true;
         if (els.turnIndicator) {
-            els.turnIndicator.textContent = 'Contacting arena...';
+            els.turnIndicator.textContent = 'Running evaluation…';
             els.turnIndicator.classList.add('is-live');
         }
 
@@ -320,10 +496,12 @@
             const useTyping = els.typingToggle && els.typingToggle.checked;
             await playDebateSequence(data, useTyping);
 
-            const winner = pickWinner(data.exchanges);
-            renderVerdict(data, winner);
+            renderVerdict(data);
             showJudgeWithAnimation();
-            setTimeout(triggerConfetti, prefersReducedMotion() ? 0 : 500);
+            const w = pickWinnerKey(data);
+            if (w !== 'DRAW') {
+                setTimeout(triggerConfetti, prefersReducedMotion() ? 0 : 500);
+            }
             if (els.btnReplay) els.btnReplay.disabled = false;
         } catch (e) {
             console.error(e);
@@ -348,10 +526,12 @@
             els.judgePanel.classList.remove('is-visible');
             const useTyping = els.typingToggle && els.typingToggle.checked;
             await playDebateSequence(lastDebateResult, useTyping);
-            const winner = pickWinner(lastDebateResult.exchanges);
-            renderVerdict(lastDebateResult, winner);
+            renderVerdict(lastDebateResult);
             showJudgeWithAnimation();
-            setTimeout(triggerConfetti, prefersReducedMotion() ? 0 : 400);
+            const w = pickWinnerKey(lastDebateResult);
+            if (w !== 'DRAW') {
+                setTimeout(triggerConfetti, prefersReducedMotion() ? 0 : 400);
+            }
         } finally {
             isRunning = false;
             els.btnStart.disabled = false;
@@ -364,6 +544,11 @@
         els.btnStart.disabled = false;
         if (els.btnReplay) els.btnReplay.disabled = true;
         els.transcript.innerHTML = '';
+        if (els.debateTimeline) els.debateTimeline.innerHTML = '';
+        if (els.timelineWrap) els.timelineWrap.hidden = true;
+        if (els.analysisGrid) els.analysisGrid.innerHTML = '';
+        if (els.evalColA) els.evalColA.innerHTML = '';
+        if (els.evalColB) els.evalColB.innerHTML = '';
         els.judgePanel.classList.remove('is-visible');
         els.debateArena.classList.add('is-idle');
         if (els.turnIndicator) {
@@ -374,6 +559,9 @@
         if (els.barAcc) els.barAcc.style.width = '0%';
         if (els.barRiskPct) els.barRiskPct.textContent = '0%';
         if (els.barAccPct) els.barAccPct.textContent = '0%';
+        if (els.verdictWinner) els.verdictWinner.textContent = '—';
+        if (els.verdictType) els.verdictType.textContent = '—';
+        if (els.verdictConfidence) els.verdictConfidence.textContent = '—';
         setError('');
         if (els.confettiLayer) els.confettiLayer.innerHTML = '';
     }
@@ -424,20 +612,23 @@
     }
 
     function formatDebateAsText(data) {
-        let s = 'AI Debate Arena — Transcript\n';
-        s += 'Topic: ' + (data.topic || '') + '\n\n';
+        let s = 'LLM Evaluation Dashboard — Transcript\n';
+        s += 'Topic: ' + (data.topic || '') + '\n';
+        s += 'Models: ' + (data.modelAName || '') + ' vs ' + (data.modelBName || '') + '\n\n';
         (data.exchanges || []).forEach(function (ex, i) {
-            s += '[' + (i + 1) + '] ' + (ex.speaker || '') + ': ' + (ex.text || '') + '\n\n';
+            const who = ex.modelName || ex.speaker || '';
+            s += '[' + (i + 1) + '] ' + who + ' (' + (ex.role || '') + '): ' + (ex.text || '') + '\n\n';
         });
         const v = data.verdict || {};
         s += '--- Judge ---\n';
+        s += 'Winner: ' + (v.winnerKey || '') + ' | Type: ' + (v.verdictType || '') + '\n';
+        s += 'Confidence: ' + (typeof v.confidence === 'number' ? Math.round(v.confidence * 100) + '%' : '') + '\n';
         s += (v.summary || '') + '\n\n';
-        s += 'Hallucination bias: ' + (v.hallucinationBias || '') + '\n\n';
+        s += 'Hallucination: ' + (v.hallucinationBias || '') + '\n\n';
         s += 'Accuracy: ' + (v.accuracyAssessment || '') + '\n';
         return s;
     }
 
-    /* Settings UI */
     if (els.btnSettings && els.settingsPanel) {
         els.btnSettings.addEventListener('click', function () {
             const open = !els.settingsPanel.classList.contains('is-open');
@@ -468,7 +659,6 @@
     if (els.btnReset) els.btnReset.addEventListener('click', resetArena);
     if (els.btnCopy) els.btnCopy.addEventListener('click', copyToClipboard);
 
-    /* Export named functions for debugging / extension */
     window.DebateArena = {
         simulateTyping: simulateTyping,
         animateMessageEntry: animateMessageEntry,

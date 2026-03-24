@@ -1,24 +1,49 @@
 package com.example.demo.debate;
 
 /**
- * One turn in a debate: which model spoke and what they said.
- * Replace {@link #getText()} generation with LLM calls when wiring real models.
+ * One turn: model identity, role, optional sampling config, and message text.
+ * {@link #getSpeaker()} mirrors {@link #getModelName()} for older clients.
  */
 public class DebateExchange {
 
-    private final String speaker;
+    private final String side;
+    private final String modelName;
+    private final String role;
+    private final double temperature;
     private final String text;
 
-    public DebateExchange(String speaker, String text) {
-        this.speaker = speaker;
+    public DebateExchange(String side, String modelName, String role, double temperature, String text) {
+        this.side = side;
+        this.modelName = modelName;
+        this.role = role;
+        this.temperature = temperature;
         this.text = text;
     }
 
-    public String getSpeaker() {
-        return speaker;
+    /** "A" or "B" — use for layout and winner logic on the client. */
+    public String getSide() {
+        return side;
+    }
+
+    public String getModelName() {
+        return modelName;
+    }
+
+    /** e.g. Pro / Against */
+    public String getRole() {
+        return role;
+    }
+
+    public double getTemperature() {
+        return temperature;
     }
 
     public String getText() {
         return text;
+    }
+
+    /** Same as {@link #getModelName()} — kept for JSON clients expecting "speaker". */
+    public String getSpeaker() {
+        return modelName;
     }
 }
