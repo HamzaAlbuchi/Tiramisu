@@ -51,6 +51,14 @@ public class GeminiClient {
     @Value("${gemini.model.id:gemini-2.5-flash}")
     private String modelId;
 
+    /** Debate turns: 500 was truncating replies; override with GEMINI_MAX_OUTPUT_TOKENS_DEBATE. */
+    @Value("${gemini.max-output-tokens-debate:2048}")
+    private int maxOutputTokensDebate;
+
+    /** Judge JSON needs headroom; 500 caused truncated JSON / Jackson Unexpected end-of-input. */
+    @Value("${gemini.max-output-tokens-judge:8192}")
+    private int maxOutputTokensJudge;
+
     public GeminiClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
@@ -70,7 +78,7 @@ public class GeminiClient {
         }
         try {
             String url = String.format(ENDPOINT_TEMPLATE, modelId.trim(), apiKey.trim());
-            Map<String, Object> body = buildRequestBody(systemPrompt, userPrompt, temperature);
+            Map<String, Object> body = buildRequestBody(systemPrompt, userPrompt, temperature, maxOutputTokensJudge);
             String json = objectMapper.writeValueAsString(body);
 
             HttpHeaders headers = new HttpHeaders();
@@ -83,6 +91,9 @@ public class GeminiClient {
                 return "";
             }
             return extractText(response.getBody());
+        } catch (HttpStatusCodeException e) {
+            log.error("Gemini HTTP {} — body: {}", e.getStatusCode().value(), truncate(e.getResponseBodyAsString(), 1200));
+            return "";
         } catch (RestClientException e) {
             log.error("Gemini API call failed: {}", e.getMessage());
             return "";
@@ -109,7 +120,7 @@ public class GeminiClient {
         }
         try {
             String url = String.format(ENDPOINT_TEMPLATE, modelId.trim(), apiKey.trim());
-            Map<String, Object> body = buildRequestBodyWithHistory(systemPrompt, history, temperature);
+            Map<String, Object> body = buildRequestBodyWithHistory(systemPrompt, history, temperature, maxOutputTokensDebate);
             String json = objectMapper.writeValueAsString(body);
 
             HttpHeaders headers = new HttpHeaders();
@@ -169,7 +180,7 @@ public class GeminiClient {
     }
 
     private static Map<String, Object> buildRequestBodyWithHistory(
-            String systemPrompt, List<GeminiMessage> history, double temperature) {
+            String systemPrompt, List<GeminiMessage> history, double temperature, int maxOutputTokens) {
         Map<String, Object> sysPart = new LinkedHashMap<String, Object>();
         sysPart.put("text", systemPrompt);
 
@@ -189,7 +200,7 @@ public class GeminiClient {
 
         Map<String, Object> generationConfig = new LinkedHashMap<String, Object>();
         generationConfig.put("temperature", temperature);
-        generationConfig.put("maxOutputTokens", 500);
+        generationConfig.put("maxOutputTokens", maxOutputTokens);
 
         Map<String, Object> root = new LinkedHashMap<String, Object>();
         // REST JSON uses camelCase per google.api HTTP proto mapping
@@ -199,7 +210,8 @@ public class GeminiClient {
         return root;
     }
 
-    private static Map<String, Object> buildRequestBody(String systemPrompt, String userPrompt, double temperature) {
+    private static Map<String, Object> buildRequestBody(
+            String systemPrompt, String userPrompt, double temperature, int maxOutputTokens) {
         Map<String, Object> sysPart = new LinkedHashMap<String, Object>();
         sysPart.put("text", systemPrompt);
 
@@ -215,7 +227,7 @@ public class GeminiClient {
 
         Map<String, Object> generationConfig = new LinkedHashMap<String, Object>();
         generationConfig.put("temperature", temperature);
-        generationConfig.put("maxOutputTokens", 500);
+        generationConfig.put("maxOutputTokens", maxOutputTokens);
 
         Map<String, Object> root = new LinkedHashMap<String, Object>();
         root.put("systemInstruction", sysInst);
@@ -251,20 +263,30 @@ public class GeminiClient {
             }
             JsonNode first = candidates.get(0);
             JsonNode finishReason = first.path("finishReason");
-            if (!finishReason.isMissingNode() && finishReason.asText("").length() > 0) {
-                log.debug("Gemini finishReason={}", finishReason.asText());
+            if (finishReason.isMissingNode()) {
+                finishReason = first.path("finish_reason");
+            }
+            String fr = finishReason.asText("");
+            if (fr.length() > 0) {
+                log.debug("Gemini finishReason={}", fr);
+            }
+            if ("MAX_TOKENS".equals(fr)) {
+                log.warn("Gemini hit MAX_TOKENS — raise gemini.max-output-tokens-debate or gemini.max-output-tokens-judge");
             }
             JsonNode parts = first.path("content").path("parts");
             if (!parts.isArray() || parts.size() == 0) {
                 log.warn("Gemini candidate has no content.parts (finishReason={}) — {}",
-                        finishReason.asText(""), truncate(responseBody, 800));
+                        fr, truncate(responseBody, 800));
                 return "";
             }
-            JsonNode textNode = parts.get(0).path("text");
-            if (textNode.isMissingNode() || textNode.asText("").isEmpty()) {
-                return "";
+            StringBuilder out = new StringBuilder();
+            for (int pi = 0; pi < parts.size(); pi++) {
+                JsonNode textNode = parts.get(pi).path("text");
+                if (!textNode.isMissingNode() && !textNode.asText("").isEmpty()) {
+                    out.append(textNode.asText(""));
+                }
             }
-            return textNode.asText("");
+            return out.toString();
         } catch (Exception e) {
             log.error("Failed to parse Gemini response JSON: {}", e.getMessage());
             return "";
