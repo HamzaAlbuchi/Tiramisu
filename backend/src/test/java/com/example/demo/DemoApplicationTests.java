@@ -26,6 +26,16 @@ class DemoApplicationTests {
 	private TestRestTemplate restTemplate;
 
 	@Test
+	void rootReturnsApiInfoJson() {
+		ResponseEntity<String> r = restTemplate.getForEntity("/", String.class);
+		assertEquals(HttpStatus.OK, r.getStatusCode());
+		String body = r.getBody();
+		assertNotNull(body);
+		assertTrue(body.contains("\"service\""));
+		assertTrue(body.contains("tiramisu-api"));
+	}
+
+	@Test
 	void postDebateReturnsApiShape() {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
