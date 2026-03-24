@@ -2,7 +2,6 @@ import type { DebateEvaluation } from "@/types/debate";
 
 interface Props {
   evaluation: DebateEvaluation;
-  /** Dashboard hero: larger type, stronger frame, run context in header row */
   variant?: "default" | "hero";
   topic?: string;
   styleLabel?: string;
@@ -23,30 +22,32 @@ export function EvaluationCard({
   const isHero = variant === "hero";
   const { analysis } = evaluation;
 
+  const frame = isHero
+    ? "rounded-xl border border-white/[0.1] bg-[#0f1117] p-6 md:p-7"
+    : "rounded-xl border border-white/10 bg-ink-800/40 p-5";
+
   return (
-    <section
-      className={
-        isHero
-          ? "rounded-2xl border border-white/15 bg-gradient-to-b from-ink-800/95 to-ink-900/90 p-6 shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_32px_64px_-24px_rgba(0,0,0,0.65)] backdrop-blur md:p-8"
-          : "rounded-2xl border border-white/10 bg-ink-800/40 p-5 shadow-panel backdrop-blur"
-      }
-    >
+    <section className={frame}>
       {(topic != null || onExportJson) && isHero && (
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-5">
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4 border-b border-white/[0.08] pb-6">
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-mist">Subject</p>
-            <p className="mt-1.5 text-base font-medium leading-snug text-slate-100 md:text-lg">{topic}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Subject</p>
+            <p className="mt-2 text-base font-medium leading-snug text-slate-100 md:text-[1.05rem]">{topic}</p>
             {(styleLabel != null || exchangeCount != null || rounds != null) && (
-              <p className="mt-2 text-xs text-mist">
+              <p className="mt-2 text-xs text-slate-600">
                 {styleLabel != null && (
                   <>
-                    Style <span className="text-slate-400">{styleLabel}</span>
+                    Register <span className="text-slate-500">{styleLabel}</span>
                     {(exchangeCount != null || rounds != null) && " · "}
                   </>
                 )}
                 {exchangeCount != null && <span>{exchangeCount} messages</span>}
                 {exchangeCount != null && rounds != null && " · "}
-                {rounds != null && <span>{rounds} round{rounds === 1 ? "" : "s"} requested</span>}
+                {rounds != null && (
+                  <span>
+                    {rounds} round{rounds === 1 ? "" : "s"}
+                  </span>
+                )}
               </p>
             )}
           </div>
@@ -54,7 +55,7 @@ export function EvaluationCard({
             <button
               type="button"
               onClick={onExportJson}
-              className="shrink-0 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-white/25 hover:bg-white/[0.07]"
+              className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-400 transition hover:border-white/15 hover:text-slate-300"
             >
               Export JSON
             </button>
@@ -62,94 +63,77 @@ export function EvaluationCard({
         </div>
       )}
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2
-            className={
-              isHero
-                ? "font-display text-xl font-semibold tracking-tight text-slate-50 md:text-2xl"
-                : "font-display text-lg font-semibold text-slate-100"
-            }
-          >
-            Verdict
-          </h2>
-          <p className="mt-1 text-xs text-mist">Judge output · heuristic stub</p>
-        </div>
-        <div className="text-right">
-          <span
-            className={
-              isHero
-                ? "inline-block rounded-md border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-200"
-                : "rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-accent-glow"
-            }
-          >
+      {/* 1. Verdict — dominant */}
+      <div className="border-b border-white/[0.08] pb-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Verdict</p>
+        <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-50 md:text-[1.75rem]">
+          {evaluation.winnerLabel}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <span className="rounded-md border border-white/[0.1] bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-slate-400">
             {evaluation.verdictType.replace(/_/g, " ")}
           </span>
-          <p className="mt-3 text-sm text-mist">
-            Outcome{" "}
-            <span className="font-semibold text-slate-100">{evaluation.winnerLabel}</span>
-          </p>
-          <p className="mt-1 text-xs tabular-nums text-mist">
-            Confidence {(evaluation.confidence * 100).toFixed(0)}% · Hallucination risk{" "}
-            {(evaluation.hallucinationRiskScore * 100).toFixed(0)}% · Accuracy signal{" "}
-            {(evaluation.accuracySignalScore * 100).toFixed(0)}%
-          </p>
+          <span className="text-sm tabular-nums text-slate-500">
+            Confidence <span className="font-medium text-slate-300">{(evaluation.confidence * 100).toFixed(0)}%</span>
+          </span>
         </div>
+        <p className="mt-5 text-sm leading-relaxed text-slate-400 md:text-[0.9375rem]">{analysis.summary}</p>
       </div>
 
-      <p
-        className={
-          isHero
-            ? "mt-6 text-base leading-relaxed text-slate-200 md:text-[1.05rem]"
-            : "mt-4 text-sm leading-relaxed text-slate-200"
-        }
-      >
-        {analysis.summary}
+      {/* 2. Risk signals — compact, calm */}
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Hallucination risk</p>
+          <p className="mt-2 text-xs leading-relaxed text-slate-500">{analysis.hallucinationBias}</p>
+        </div>
+        <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Accuracy read</p>
+          <p className="mt-2 text-xs leading-relaxed text-slate-500">{analysis.accuracyAssessment}</p>
+        </div>
+      </div>
+      <p className="mt-3 text-center text-[10px] tabular-nums text-slate-600">
+        Risk score {(evaluation.hallucinationRiskScore * 100).toFixed(0)}% · Signal{" "}
+        {(evaluation.accuracySignalScore * 100).toFixed(0)}%
       </p>
 
-      <div className="mt-6 grid gap-3 text-sm text-mist sm:grid-cols-2">
-        <div className="rounded-xl border border-white/[0.06] bg-ink-950/40 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Hallucination bias</p>
-          <p className="mt-2 leading-relaxed text-slate-400">{analysis.hallucinationBias}</p>
-        </div>
-        <div className="rounded-xl border border-white/[0.06] bg-ink-950/40 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Accuracy</p>
-          <p className="mt-2 leading-relaxed text-slate-400">{analysis.accuracyAssessment}</p>
-        </div>
-      </div>
-
-      <div className="mt-6 grid gap-6 border-t border-white/10 pt-6 sm:grid-cols-2">
-        <div>
-          <p className="text-xs font-semibold text-teal-glow/90">Strengths · Pro</p>
-          <ul className="mt-2 list-outside list-disc space-y-1.5 pl-4 text-sm text-slate-300">
-            {analysis.strengthsPro.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-          <p className="mt-4 text-xs font-semibold text-slate-500">Weaknesses · Pro</p>
-          <ul className="mt-2 list-outside list-disc space-y-1.5 pl-4 text-sm text-slate-400">
-            {analysis.weaknessesPro.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-accent-glow/90">Strengths · Against</p>
-          <ul className="mt-2 list-outside list-disc space-y-1.5 pl-4 text-sm text-slate-300">
-            {analysis.strengthsAgainst.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-          <p className="mt-4 text-xs font-semibold text-slate-500">Weaknesses · Against</p>
-          <ul className="mt-2 list-outside list-disc space-y-1.5 pl-4 text-sm text-slate-400">
-            {analysis.weaknessesAgainst.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
+      {/* 3. Per-model notes */}
+      <div className="mt-8 border-t border-white/[0.08] pt-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Model notes</p>
+        <div className="mt-4 grid gap-6 sm:grid-cols-2">
+          <div>
+            <p className="text-xs font-medium text-slate-400">Pro</p>
+            <ul className="mt-2 list-outside list-disc space-y-1.5 pl-4 text-sm text-slate-500">
+              {analysis.strengthsPro.map((s, i) => (
+                <li key={`sp-${i}`}>{s}</li>
+              ))}
+            </ul>
+            <ul className="mt-3 list-outside list-disc space-y-1.5 pl-4 text-sm text-slate-600">
+              {analysis.weaknessesPro.map((s, i) => (
+                <li key={`wp-${i}`}>{s}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-slate-400">Against</p>
+            <ul className="mt-2 list-outside list-disc space-y-1.5 pl-4 text-sm text-slate-500">
+              {analysis.strengthsAgainst.map((s, i) => (
+                <li key={`sa-${i}`}>{s}</li>
+              ))}
+            </ul>
+            <ul className="mt-3 list-outside list-disc space-y-1.5 pl-4 text-sm text-slate-600">
+              {analysis.weaknessesAgainst.map((s, i) => (
+                <li key={`wa-${i}`}>{s}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
 
-      <p className="mt-6 border-t border-white/10 pt-5 text-sm leading-relaxed text-slate-500">{analysis.finalReasoning}</p>
+      {/* 4. Judge rationale */}
+      <div className="mt-8 border-t border-white/[0.08] pt-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Judge rationale</p>
+        <p className="mt-3 text-sm leading-relaxed text-slate-600">{analysis.finalReasoning}</p>
+      </div>
     </section>
   );
 }

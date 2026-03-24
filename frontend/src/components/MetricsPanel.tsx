@@ -8,15 +8,12 @@ const ROWS: { key: keyof DebateMetrics; label: string }[] = [
   { key: "clarity", label: "Clarity" },
 ];
 
-function Bar({ value, accent }: { value: number; accent: "pro" | "against" }) {
+function Bar({ value, variant }: { value: number; variant: "a" | "b" }) {
   const pct = Math.min(100, Math.max(0, (value / 10) * 100));
-  const bg = accent === "pro" ? "from-teal-glow/90 to-teal-glow/40" : "from-accent-glow/90 to-accent/50";
+  const fill = variant === "a" ? "bg-slate-400" : "bg-slate-600";
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-white/5">
-      <div
-        className={`h-full rounded-full bg-gradient-to-r ${bg}`}
-        style={{ width: `${pct}%` }}
-      />
+    <div className="h-1.5 w-full overflow-hidden rounded-sm bg-white/[0.06]">
+      <div className={`h-full rounded-sm ${fill}`} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -28,32 +25,43 @@ interface Props {
 
 export function MetricsPanel({ models, metrics }: Props) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-ink-800/50 p-5 shadow-panel backdrop-blur md:p-6">
-      <h3 className="font-display text-base font-semibold tracking-tight text-slate-100 md:text-lg">
-        Evaluation metrics
-      </h3>
-      <p className="mt-1 text-xs text-mist">Rubric scores (0–10) · stub heuristics from the backend.</p>
-      <div className="mt-4 space-y-4">
+    <section className="rounded-xl border border-white/[0.08] bg-[#0f1117] p-5 md:p-6">
+      <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Rubric comparison</h3>
+      <p className="mt-1 text-xs text-slate-600">Scores 0–10 · higher is stronger on that dimension</p>
+      <div className="mt-5 space-y-5">
         {ROWS.map(({ key, label }) => {
           const m = metrics[key];
+          const diff = m.pro - m.against;
+          const lead =
+            Math.abs(diff) < 0.05 ? null : diff > 0 ? ("pro" as const) : ("against" as const);
           return (
             <div key={key}>
-              <div className="mb-1.5 flex justify-between text-xs text-mist">
-                <span className="font-medium text-slate-300">{label}</span>
-                <span>
-                  <span className="text-teal-glow">{m.pro.toFixed(1)}</span>
-                  <span className="mx-1 text-white/20">/</span>
-                  <span className="text-accent-glow">{m.against.toFixed(1)}</span>
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <span className="text-sm font-medium text-slate-300">{label}</span>
+                <span className="tabular-nums text-xs text-slate-500">
+                  <span className="text-slate-300">{m.pro.toFixed(1)}</span>
+                  <span className="mx-1.5 text-slate-700">/</span>
+                  <span className="text-slate-300">{m.against.toFixed(1)}</span>
+                  {lead && (
+                    <span className="ml-2 text-slate-600">
+                      · {lead === "pro" ? models.pro.split(" ")[0] : models.against.split(" ")[0]}{" "}
+                      +{Math.abs(diff).toFixed(1)}
+                    </span>
+                  )}
                 </span>
               </div>
-              <div className="grid gap-2">
+              <div className="grid gap-2.5">
                 <div>
-                  <div className="mb-1 text-[10px] uppercase tracking-wider text-mist/80">{models.pro}</div>
-                  <Bar value={m.pro} accent="pro" />
+                  <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-600">
+                    {models.pro}
+                  </div>
+                  <Bar value={m.pro} variant="a" />
                 </div>
                 <div>
-                  <div className="mb-1 text-[10px] uppercase tracking-wider text-mist/80">{models.against}</div>
-                  <Bar value={m.against} accent="against" />
+                  <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-600">
+                    {models.against}
+                  </div>
+                  <Bar value={m.against} variant="b" />
                 </div>
               </div>
             </div>

@@ -9,13 +9,21 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(124, 58, 237, 0.22), transparent 55%),
-    radial-gradient(ellipse 80% 50% at 100% 50%, rgba(45, 212, 191, 0.08), transparent 45%),
-    #07080c;
+  background: #090a0d;
+  background-image: radial-gradient(ellipse 100% 60% at 50% -15%, rgba(255, 255, 255, 0.04), transparent 50%);
   font-family: "DM Sans", system-ui, sans-serif;
 }
 
 #root {
   min-height: 100vh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
