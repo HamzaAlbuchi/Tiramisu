@@ -1,5 +1,5 @@
 # GitLab CI/CD pipeline for Tiramisu (Hello World Island simulation)
-# Java 8, Maven, Spring Boot
+# Java 8, Maven, Spring Boot — build from backend/
 
 stages:
   - build
@@ -21,16 +21,16 @@ default:
 build:
   stage: build
   script:
-    - mvn $MAVEN_CLI_OPTS clean package -DskipTests
+    - cd backend && mvn $MAVEN_CLI_OPTS clean package -DskipTests
   artifacts:
     paths:
-      - target/*.jar
+      - backend/target/*.jar
     expire_in: 1 hour
 
 test:
   stage: test
   script:
-    - mvn $MAVEN_CLI_OPTS test
+    - cd backend && mvn $MAVEN_CLI_OPTS test
   dependencies:
     - build
 
@@ -40,5 +40,5 @@ deploy:
   when: manual
   script:
     - echo "Deploying application..."
-    - echo "JAR built in build stage (see job artifacts)."
+    - echo "JAR built in build stage (see job artifacts under backend/target)."
     - echo "Configure your deployment (Kubernetes, Docker, etc.) here."

@@ -1,6 +1,5 @@
 # Build output
 target/
-backend/target/
 
 # Git
 .git
