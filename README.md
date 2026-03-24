@@ -1,13 +1,19 @@
 # Tiramisu · Hello World Island Simulation
 
-A **multi-agent island simulation** built with Java and Spring Boot. The project simulates a small world (Island-1) where agents with different roles—first life, pet, explorer, doctor, psychologist, judge—move on a grid, record thoughts and events, and are observed through a web UI. The judge detects and logs **conflicts** when two agents occupy the same cell. The design is prepared for pluggable **LLM brains** so each agent can later be driven by a different language model.
+A **Java / Spring Boot** project with two experiences:
 
-**Live demo:** [https://tiramisu-production.up.railway.app/world.html](https://tiramisu-production.up.railway.app/world.html)
+1. **Main UI (`/`, `index.html`)** — **Multi-model debate**: you enter a topic and a number of exchange turns; two stub “models” (Model A / Model B) alternate; a **judge** returns a verdict with **hallucination bias** and **accuracy** notes (plus heuristic scores). Replace `DebateService` with real LLM calls when you are ready.
+2. **Secondary UI (`/world.html`)** — **Island agent simulation** (Island-1): acting agents on a grid, council evaluation, and a monitoring dashboard.
+
+The island simulation is prepared for pluggable **LLM brains** so each agent can later be driven by a different language model.
+
+**Live demo:** [https://tiramisu-production.up.railway.app/](https://tiramisu-production.up.railway.app/) · [Agent World](https://tiramisu-production.up.railway.app/world.html)
 
 ---
 
 ## What This Project Does
 
+- **Multi-model debate** (`/`): POST `/api/debate/run` with `{ "topic": "...", "exchanges": 6 }` returns a transcript and `verdict` (`summary`, `hallucinationBias`, `accuracyAssessment`, `hallucinationRiskScore`, `accuracySignalScore`). The current debaters and judge use **template + keyword heuristics**, not remote models.
 - **World model**: A 14×10 grid with terrain (water, sand, palm grove, grass, lagoon, rocky cliff). Time advances in discrete **ticks**.
 - **Acting agents** (Eos, Bony, Nova): move on the grid, produce thoughts and world events; their trails are recorded as paths. Only they appear on the world map.
 - **Council** (observer agents): **Dr. Selim** (Doctor), **Dr. Mira** (Psychologist), and **Arbitra** (Judge) do **not** move. They evaluate the world after each tick and update the **Council** data structure:
@@ -15,7 +21,7 @@ A **multi-agent island simulation** built with Java and Spring Boot. The project
   - **Psychologist**: tracks behaviour patterns, records **behaviour notes** per acting agent.
   - **Judge**: detects **conflicts** (e.g. two acting agents in the same cell) and appends to the conflict log.
 - **Council evaluation loop**: Each tick, acting agents decide and move first; then council agents analyze the new state and events and update `council.diagnostics`, `council.behaviourNotes`, and `council.conflicts`. The purpose is **AI-to-AI behavior verification**: the council evaluates and verifies the behavior of acting agents without moving in the world. The design supports later **LLM-powered council agents** (same `AgentBrain` interface; they simply do not return movement deltas and only write to `world.getCouncil()`).
-- **Web UI** (`/world.html`): World dashboard, **Council Evaluation** card (conflict/diagnostic/notes counts), **Council Panel** (Doctor diagnostics, Psychologist notes, Judge conflict log), world map (acting agents only), agent cards for Eos/Bony/Nova, and a news-style event feed.
+- **Web UI** (`/world.html`, secondary): futuristic **Agent World** dashboard — council panel, world map (acting agents only), agent cards, event feed. Link back to `/` for the debate console.
 
 **Acting agents vs Council**
 
@@ -58,10 +64,10 @@ mvnw.cmd spring-boot:run
 
 Then open:
 
-- **App**: [http://localhost:8080/](http://localhost:8080/)
-- **Island simulation UI**: [http://localhost:8080/world.html](http://localhost:8080/world.html)
+- **Debate console (main)**: [http://localhost:8080/](http://localhost:8080/)
+- **Island simulation (secondary)**: [http://localhost:8080/world.html](http://localhost:8080/world.html)
 
-Use **Step** to advance by one or more ticks, **Auto-run** to run continuously, and **Reset world** to reinitialize the island and all agents.
+On **world.html**, use **Step** to advance by one or more ticks, **Auto-run** to run continuously, and **Reset** to reinitialize the island and all agents.
 
 ### Run tests
 
@@ -78,6 +84,10 @@ Unit tests cover the core world and agent classes (e.g. `Agent`, `WorldState`, `
 ```
 src/main/java/com/example/demo/
 ├── DemoApplication.java          # Spring Boot entry point
+├── debate/
+│   ├── DebateController.java     # POST /api/debate/run
+│   ├── DebateService.java        # Stub debaters + judge (replace with LLMs)
+│   └── …                       # DebateResult, DebateVerdict, DebateExchange, DebateRequest
 └── world/
     ├── Agent.java                # Agent with role, location, thought, memory, position, path
     ├── AgentBrain.java           # Interface: decide(WorldState, Agent) → AgentDecision
@@ -98,7 +108,8 @@ src/main/java/com/example/demo/
     └── RuleBasedJudgeBrain.java
 
 src/main/resources/static/
-└── world.html                    # Island UI: map, dashboard, agent cards, events
+├── index.html                    # Main: multi-model debate UI
+└── world.html                    # Secondary: island simulation dashboard
 
 src/test/java/com/example/demo/
 ├── DemoApplicationTests.java     # Spring context + home endpoint
@@ -116,6 +127,8 @@ src/test/java/com/example/demo/
 
 | Method | Path | Description |
 |--------|------|--------------|
+| GET  | `/` or `/index.html` | Main debate UI (static). |
+| POST | `/api/debate/run`    | Body: `{ "topic": "string", "exchanges": 6 }` — transcript + judge **verdict** (hallucination / accuracy fields). |
 | GET  | `/api/world/state`   | Full world state (tick, terrain, agents, events, **council**: `{ diagnostics, behaviourNotes, conflicts }`). |
 | POST | `/api/world/reset`   | Reset world: new terrain, agents at initial positions, cleared events. |
 | POST | `/api/world/step?ticks=N` | Advance simulation by `N` ticks (default 1); returns updated state. |
@@ -159,6 +172,7 @@ Runners use the Maven + Eclipse Temurin 8 image (Maven from the image, not the w
 
 ## Extending the Project
 
+- **LLM debate**: In `DebateService`, replace `buildArgumentA` / `buildArgumentB` / `buildVerdict` with calls to your model endpoints; keep the same JSON shape for the UI.
 - **LLM brains**: Implement `AgentBrain` with a class that calls your LLM API, maps the response to a thought + event + optional `(deltaX, deltaY)`, and returns an `AgentDecision`. In `WorldService`, assign that brain to the desired agent(s) instead of the rule-based brain.
 - **New roles**: Add an enum value to `AgentRole`, create an agent and a brain (rule-based or LLM), register them in `WorldService` and in the UI state/dashboard/map if needed.
 - **Council**: The **Council** holds `diagnostics`, `behaviourNotes`, and `conflicts`. Council agents (Doctor, Psychologist, Judge) do not move; they run after acting agents each tick. To add LLM-powered council agents, implement `AgentBrain` so that the decision only updates `world.getCouncil()` and returns a thought/event (no movement deltas).

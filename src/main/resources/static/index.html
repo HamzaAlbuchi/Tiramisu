@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tiramisu · Multi-model debate</title>
+    <style>
+        :root {
+            --bg: #0b0f14;
+            --panel: rgba(11, 15, 20, 0.88);
+            --border: rgba(6, 182, 212, 0.28);
+            --cyan: #22d3ee;
+            --teal: #14b8a6;
+            --purple: #a78bfa;
+            --muted: #94a3b8;
+            --text: #e2e8f0;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            background-image:
+                linear-gradient(rgba(6, 182, 212, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(6, 182, 212, 0.04) 1px, transparent 1px);
+            background-size: 32px 32px;
+        }
+        /* Main hub: multi-model debate console. Add LLM wiring in the backend and optional streaming UI here. */
+        .shell {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px 16px 48px;
+        }
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            color: var(--cyan);
+            text-shadow: 0 0 24px rgba(34, 211, 238, 0.35);
+        }
+        .nav a {
+            color: var(--teal);
+            text-decoration: none;
+            font-size: 13px;
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            border-radius: 8px;
+        }
+        .nav a:hover { background: rgba(6, 182, 212, 0.12); }
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        }
+        .panel h2 {
+            margin: 0 0 12px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+        }
+        label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+        textarea {
+            width: 100%;
+            min-height: 88px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(0,0,0,0.35);
+            color: var(--text);
+            font-size: 14px;
+            resize: vertical;
+        }
+        .row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; margin-top: 14px; }
+        .field { flex: 1; min-width: 140px; }
+        input[type="number"] {
+            width: 100%;
+            max-width: 120px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(0,0,0,0.35);
+            color: var(--text);
+            font-size: 14px;
+        }
+        button.primary {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: rgba(6, 182, 212, 0.2);
+            color: var(--cyan);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button.primary:hover:not(:disabled) { background: rgba(6, 182, 212, 0.32); }
+        button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .hint { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.45; }
+        /* Transcript: alternating Model A / Model B bubbles. */
+        .exchange {
+            margin-bottom: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border-left: 3px solid var(--cyan);
+            background: rgba(0,0,0,0.25);
+            font-size: 14px;
+            line-height: 1.45;
+            animation: fadeIn 0.25s ease;
+        }
+        .exchange.b { border-left-color: var(--purple); }
+        .exchange .who {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--teal);
+            margin-bottom: 6px;
+        }
+        .exchange.b .who { color: var(--purple); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+        /* Judge verdict block: hallucination bias + accuracy (extend with real judge model output). */
+        .verdict {
+            border-left: 3px solid var(--teal);
+        }
+        .scores {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+        .scores span { color: var(--cyan); font-weight: 600; }
+        .err { color: #f87171; font-size: 13px; margin-top: 8px; }
+    </style>
+</head>
+<body>
+<div class="shell">
+    <header>
+        <h1>TIRAMISU · MULTI-MODEL DEBATE</h1>
+        <nav class="nav">
+            <!-- Secondary experience: island agent simulation (unchanged API). -->
+            <a href="/world.html">Open Agent World simulation →</a>
+        </nav>
+    </header>
+
+    <section class="panel">
+        <h2>Debate setup</h2>
+        <label for="topic">Topic or proposition</label>
+        <textarea id="topic" placeholder="e.g. Should autonomous agents require human approval for irreversible actions?"></textarea>
+        <div class="row">
+            <div class="field">
+                <label for="exchanges">Exchange turns (each turn is one model speaking; A and B alternate)</label>
+                <input type="number" id="exchanges" min="2" max="24" value="6">
+            </div>
+            <button type="button" class="primary" id="btnRun">Run debate</button>
+        </div>
+        <p class="hint">Two models argue the topic for the number of turns you set. A third <strong>judge</strong> then issues a verdict including <strong>hallucination bias</strong> and <strong>accuracy</strong> signals (stub heuristics today — swap the backend for real LLM debaters and a judge).</p>
+    </section>
+
+    <section class="panel" id="transcriptPanel" style="display:none;">
+        <h2>Transcript</h2>
+        <div id="transcript"></div>
+    </section>
+
+    <section class="panel verdict" id="verdictPanel" style="display:none;">
+        <h2>Judge verdict</h2>
+        <p id="verdictSummary" style="margin:0 0 12px;font-size:14px;line-height:1.5;"></p>
+        <div class="scores">
+            <div>Hallucination risk (0–1): <span id="scoreHalluc">–</span></div>
+            <div>Accuracy signal (0–1): <span id="scoreAcc">–</span></div>
+        </div>
+        <p id="verdictHalluc" style="font-size:13px;line-height:1.5;color:var(--muted);"></p>
+        <p id="verdictAcc" style="font-size:13px;line-height:1.5;color:var(--muted);"></p>
+    </section>
+
+    <p id="error" class="err" style="display:none;"></p>
+</div>
+<script>
+(function () {
+    const topicEl = document.getElementById('topic');
+    const exchangesEl = document.getElementById('exchanges');
+    const btnRun = document.getElementById('btnRun');
+    const transcriptPanel = document.getElementById('transcriptPanel');
+    const transcriptEl = document.getElementById('transcript');
+    const verdictPanel = document.getElementById('verdictPanel');
+    const verdictSummary = document.getElementById('verdictSummary');
+    const verdictHalluc = document.getElementById('verdictHalluc');
+    const verdictAcc = document.getElementById('verdictAcc');
+    const scoreHalluc = document.getElementById('scoreHalluc');
+    const scoreAcc = document.getElementById('scoreAcc');
+    const errorEl = document.getElementById('error');
+
+    function setError(msg) {
+        if (msg) {
+            errorEl.textContent = msg;
+            errorEl.style.display = 'block';
+        } else {
+            errorEl.style.display = 'none';
+        }
+    }
+
+    btnRun.addEventListener('click', async function () {
+        setError('');
+        const topic = topicEl.value.trim();
+        const exchanges = Math.max(2, Math.min(24, parseInt(exchangesEl.value || '6', 10)));
+        btnRun.disabled = true;
+        try {
+            const res = await fetch('/api/debate/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topic: topic, exchanges: exchanges })
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+
+            transcriptEl.innerHTML = '';
+            (data.exchanges || []).forEach(function (ex) {
+                const div = document.createElement('div');
+                const isB = (ex.speaker || '') === 'Model B';
+                div.className = 'exchange' + (isB ? ' b' : '');
+                const who = document.createElement('div');
+                who.className = 'who';
+                who.textContent = ex.speaker || 'Model';
+                const text = document.createElement('div');
+                text.textContent = ex.text || '';
+                div.appendChild(who);
+                div.appendChild(text);
+                transcriptEl.appendChild(div);
+            });
+            transcriptPanel.style.display = 'block';
+
+            const v = data.verdict || {};
+            verdictSummary.textContent = v.summary || '';
+            verdictHalluc.textContent = v.hallucinationBias || '';
+            verdictAcc.textContent = v.accuracyAssessment || '';
+            scoreHalluc.textContent = typeof v.hallucinationRiskScore === 'number' ? v.hallucinationRiskScore.toFixed(2) : '–';
+            scoreAcc.textContent = typeof v.accuracySignalScore === 'number' ? v.accuracySignalScore.toFixed(2) : '–';
+            verdictPanel.style.display = 'block';
+        } catch (e) {
+            console.error(e);
+            setError('Could not run debate. Is the server running?');
+        } finally {
+            btnRun.disabled = false;
+        }
+    });
+})();
+</script>
+</body>
+</html>

@@ -56,6 +56,14 @@
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
         }
 
+        .top-bar-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
         .top-bar-title {
             font-size: 14px;
             font-weight: 700;
@@ -63,6 +71,20 @@
             color: var(--accent-cyan);
             text-shadow: 0 0 20px var(--glow-cyan);
             margin: 0;
+        }
+
+        .top-bar-head a {
+            font-size: 12px;
+            color: var(--accent-teal);
+            text-decoration: none;
+            border: 1px solid var(--glass-border);
+            padding: 6px 12px;
+            border-radius: 8px;
+            letter-spacing: 0.06em;
+        }
+
+        .top-bar-head a:hover {
+            background: rgba(6, 182, 212, 0.12);
         }
 
         .top-bar-metrics {
@@ -287,21 +309,33 @@
             margin-top: 8px;
         }
 
-        /* Center column: world map — grid, agents, trails, interaction highlight. */
+        /* Center column: world map — grid, agents, trails, interaction highlight. Fills middle space. */
         .world-map {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
+            min-height: 0;
+        }
+
+        .map-container {
+            flex: 1;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
         }
 
         .map-wrap {
             position: relative;
             display: inline-block;
+            max-width: 100%;
+            max-height: 100%;
             border: 1px solid var(--glass-border);
             border-radius: 8px;
             overflow: hidden;
             background: #0f172a;
             box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4);
+            transform-origin: center center;
         }
 
         .map-grid {
@@ -488,7 +522,11 @@
 <div id="dashboard" class="dashboard">
     <!-- Top bar: title, live metrics (tick, status, population, conflicts, diagnostics, alliances), controls, time slider. -->
     <header class="top-bar">
-        <h1 class="top-bar-title">TIRAMISU · AGENT WORLD</h1>
+        <div class="top-bar-head">
+            <h1 class="top-bar-title">TIRAMISU · AGENT WORLD</h1>
+            <!-- Primary hub: multi-model debate (this page is the island simulation). -->
+            <a href="/">← Multi-model debate</a>
+        </div>
         <div class="top-bar-metrics">
             <div class="metric">
                 <span class="metric-label">Tick</span>
@@ -587,9 +625,11 @@
         <section class="panel world-map">
             <h2 class="panel-title">World map</h2>
             <p id="worldDescription" style="font-size:11px;color:var(--text-muted);margin:0 0 10px 0;"></p>
-            <div class="map-wrap" id="mapWrap">
-                <div class="map-grid" id="mapGrid"></div>
-                <div class="map-agents-layer" id="mapAgentsLayer"></div>
+            <div class="map-container">
+                <div class="map-wrap" id="mapWrap">
+                    <div class="map-grid" id="mapGrid"></div>
+                    <div class="map-agents-layer" id="mapAgentsLayer"></div>
+                </div>
             </div>
             <div class="map-legend" id="mapLegend">
                 <span><span class="swatch" style="background:#0c4a6e"></span> Water</span>
@@ -914,6 +954,21 @@
             marker.style.top = (py * STEP + (STEP - 18) / 2) + 'px';
             layerEl.appendChild(marker);
         });
+
+        requestAnimationFrame(scaleMapToFit);
+    }
+
+    function scaleMapToFit() {
+        const wrapEl = document.getElementById('mapWrap');
+        const container = wrapEl && wrapEl.parentElement;
+        if (!wrapEl || !container) return;
+        const cw = container.clientWidth;
+        const ch = container.clientHeight;
+        const mw = wrapEl.offsetWidth;
+        const mh = wrapEl.offsetHeight;
+        if (mw <= 0 || mh <= 0) return;
+        const scale = Math.min(cw / mw, ch / mh, 3);
+        wrapEl.style.transform = 'scale(' + scale + ')';
     }
 
     function updateTickSlider() {
@@ -1009,6 +1064,12 @@
             }
         });
     }
+
+    var resizeTimeout;
+    window.addEventListener('resize', function () {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(scaleMapToFit, 80);
+    });
 
     fetchState();
 </script>
