@@ -8,12 +8,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Sans:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Instrument+Serif:ital,opsz,wght@0,12..72,400;0,12..72,500;1,12..72,400;1,12..72,500&display=swap"
       rel="stylesheet"
     />
-    <title>Tiramisu · Debate</title>
+    <title>Arbiter · Debate</title>
   </head>
   <body>
+    <svg class="arb-grain-svg" aria-hidden="true" focusable="false">
+      <filter id="arb-grain" x="0%" y="0%" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" stitchTiles="stitch" result="noise" />
+        <feColorMatrix type="saturate" values="0" in="noise" result="grey" />
+        <feComponentTransfer in="grey" result="grain">
+          <feFuncA type="discrete" tableValues="0 0.4" />
+        </feComponentTransfer>
+      </filter>
+    </svg>
     <div id="root"></div>
     <script src="/api-config.js"></script>
     <script type="module" src="/src/main.tsx"></script>

@@ -1,6 +1,8 @@
 import { useState } from "react";
 
 const STYLES = ["balanced", "formal", "casual", "technical"] as const;
+const MODEL_OPTIONS = ["GPT-4o", "Claude Sonnet", "Gemini Pro"] as const;
+const JUDGE_OPTIONS = ["Internal arbiter", "GPT-4o", "Claude 3 Opus"] as const;
 
 export interface DebateFormValues {
   topic: string;
@@ -11,69 +13,84 @@ export interface DebateFormValues {
 interface Props {
   loading: boolean;
   onSubmit: (v: DebateFormValues) => void;
-  /** Single column + lighter chrome (dashboard: inputs least prominent). */
   variant?: "default" | "compact";
-  /** Merged onto the form element for page-level layout only. */
   className?: string;
-  /** Scroll-collapsed header: tighter field, single-line subject. */
   headerDense?: boolean;
 }
 
-export function DebateForm({ loading, onSubmit, variant = "default", className, headerDense }: Props) {
+const field =
+  "w-full border border-arb-border bg-arb-bg px-3 py-2 font-mono text-xs text-arb-text outline-none transition focus:border-arb-muted focus:ring-1 focus:ring-arb-border";
+const labelMono = "mb-1.5 block font-mono text-[10px] uppercase tracking-[0.14em] text-arb-muted";
+
+export function DebateForm({ loading, onSubmit, variant = "default", className }: Props) {
   const [topic, setTopic] = useState("Should cities prioritize public transit over cars?");
   const [rounds, setRounds] = useState(3);
   const [style, setStyle] = useState<string>("balanced");
+  const [proModel, setProModel] = useState<string>(MODEL_OPTIONS[0]);
+  const [againstModel, setAgainstModel] = useState<string>(MODEL_OPTIONS[1]);
+  const [judgeModel, setJudgeModel] = useState<string>(JUDGE_OPTIONS[0]);
 
   const compact = variant === "compact";
-  const dense = Boolean(headerDense && compact);
-  const field =
-    "w-full rounded-lg border border-white/[0.08] bg-[#0c0d11] px-3 py-2 text-sm text-slate-200 outline-none transition focus:border-white/15 focus:ring-1 focus:ring-white/10";
-  const labelCls = compact
-    ? dense
-      ? "sr-only"
-      : "mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-500"
-    : "mb-2 block text-sm font-medium text-mist";
-
-  const formClass = [compact ? (dense ? "space-y-2" : "space-y-4") : "space-y-5", className].filter(Boolean).join(" ");
 
   return (
     <form
-      className={formClass}
+      className={["space-y-6", className].filter(Boolean).join(" ")}
       onSubmit={(e) => {
         e.preventDefault();
         onSubmit({ topic, rounds, style });
       }}
     >
       <div>
-        <label className={labelCls} htmlFor="topic">
-          {compact ? "Subject" : "Topic"}
+        <label className={labelMono} htmlFor="topic">
+          Motion
         </label>
         <textarea
           id="topic"
-          rows={dense ? 1 : compact ? 2 : 3}
+          rows={compact ? 2 : 4}
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          className={
-            compact
-              ? `${field} resize-y placeholder:text-slate-600 ${dense ? "min-h-[2.5rem] py-2 text-[13px]" : ""}`
-              : "w-full resize-y rounded-xl border border-white/10 bg-ink-900/80 px-4 py-3 text-sm text-slate-100 shadow-inner outline-none transition focus:border-white/20 focus:ring-1 focus:ring-white/10"
-          }
-          placeholder={compact ? "Evaluation subject…" : "What should the models debate?"}
-          aria-label="Evaluation subject"
+          className={`${field} min-h-[5.5rem] resize-y font-serif text-lg italic leading-snug placeholder:text-arb-muted/60 sm:text-xl`}
+          placeholder="State the proposition under review…"
+          aria-label="Debate topic"
         />
       </div>
-      <div
-        className={
-          compact
-            ? dense
-              ? "flex flex-wrap items-center gap-2"
-              : "flex flex-wrap items-end gap-3"
-            : "grid gap-4 sm:grid-cols-2"
-        }
-      >
-        <div className={compact ? (dense ? "w-20 shrink-0" : "w-24 shrink-0") : ""}>
-          <label className={labelCls} htmlFor="rounds">
-            {compact ? "Rounds" : "Rounds (Pro + Against pairs)"}
+
+      <div>
+        <p className={labelMono}>Models (display only — assigned per pipeline)</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <select
+            value={proModel}
+            onChange={(e) => setProModel(e.target.value)}
+            className={`${field} sm:max-w-[200px]`}
+            aria-label="Pro model"
+          >
+            {MODEL_OPTIONS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <span className="hidden text-center font-bebas text-xl text-arb-muted sm:block sm:px-2">VS</span>
+          <span className="text-center font-bebas text-lg text-arb-muted sm:hidden">VS</span>
+          <select
+            value={againstModel}
+            onChange={(e) => setAgainstModel(e.target.value)}
+            className={`${field} sm:max-w-[200px]`}
+            aria-label="Against model"
+          >
+            {MODEL_OPTIONS.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div>
+          <label className={labelMono} htmlFor="rounds">
+            Rounds
           </label>
           <input
             id="rounds"
@@ -82,19 +99,14 @@ export function DebateForm({ loading, onSubmit, variant = "default", className, 
             max={12}
             value={rounds}
             onChange={(e) => setRounds(Number(e.target.value))}
-            className={compact ? field : "w-full rounded-xl border border-white/10 bg-ink-900/80 px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30"}
+            className={field}
           />
         </div>
-        <div className={compact ? (dense ? "min-w-[120px] max-w-[160px] flex-1" : "min-w-[140px] flex-1") : ""}>
-          <label className={labelCls} htmlFor="style">
-            {compact ? "Style" : "Style (stub prefix)"}
+        <div>
+          <label className={labelMono} htmlFor="style">
+            Style
           </label>
-          <select
-            id="style"
-            value={style}
-            onChange={(e) => setStyle(e.target.value)}
-            className={compact ? field : "w-full rounded-xl border border-white/10 bg-ink-900/80 px-4 py-2.5 text-sm text-slate-100 outline-none focus:border-accent/40 focus:ring-2 focus:ring-accent/30"}
-          >
+          <select id="style" value={style} onChange={(e) => setStyle(e.target.value)} className={field}>
             {STYLES.map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -102,28 +114,35 @@ export function DebateForm({ loading, onSubmit, variant = "default", className, 
             ))}
           </select>
         </div>
-        <div
-          className={
-            compact
-              ? dense
-                ? "flex w-full min-w-[120px] shrink-0 justify-end sm:ml-auto sm:w-auto"
-                : "flex min-w-[120px] flex-1 justify-end sm:ml-auto"
-              : "sm:col-span-2"
-          }
-        >
-          <button
-            type="submit"
-            disabled={loading || !topic.trim()}
-            className={
-              compact
-                ? "h-[38px] w-full min-w-[132px] rounded-lg border border-white/10 bg-white/[0.06] px-4 text-sm font-medium text-slate-200 transition hover:border-white/15 hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
-                : "w-full rounded-xl border border-white/15 bg-white/[0.08] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:border-white/20 hover:bg-white/[0.1] disabled:cursor-not-allowed disabled:opacity-40"
-            }
+        <div>
+          <label className={labelMono} htmlFor="judge">
+            Judge model
+          </label>
+          <select
+            id="judge"
+            value={judgeModel}
+            onChange={(e) => setJudgeModel(e.target.value)}
+            className={field}
+            aria-label="Judge model (display only)"
           >
-            {loading ? "Running…" : compact ? "Run evaluation" : "Run debate"}
-          </button>
+            {JUDGE_OPTIONS.map((j) => (
+              <option key={j} value={j}>
+                {j}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
+
+      <button
+        type="submit"
+        disabled={loading || !topic.trim()}
+        className="group relative w-full border border-arb-accent/80 bg-arb-accent py-3.5 font-mono text-sm font-medium uppercase tracking-[0.16em] text-arb-bg transition enabled:hover:-translate-y-px enabled:hover:shadow-[0_6px_24px_-6px_rgba(232,255,71,0.45)] disabled:cursor-not-allowed disabled:opacity-35"
+      >
+        <span className={loading ? "animate-eval-pulse inline-block" : ""}>
+          {loading ? "EVALUATING…" : "⚡ RUN DEBATE"}
+        </span>
+      </button>
     </form>
   );
 }

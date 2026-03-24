@@ -4,18 +4,49 @@
 
 :root {
   color-scheme: dark;
+  --arb-bg: #0a0a0b;
+  --arb-surface: #111113;
+  --arb-border: #1e1e22;
+  --arb-accent: #e8ff47;
+  --arb-pro: #47c8ff;
+  --arb-against: #ff6b7a;
+  --arb-muted: #5a5a62;
+  --arb-text: #f0f0ee;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: #090a0d;
-  background-image: radial-gradient(ellipse 100% 60% at 50% -15%, rgba(255, 255, 255, 0.04), transparent 50%);
-  font-family: "DM Sans", system-ui, sans-serif;
+  background: var(--arb-bg);
+  color: var(--arb-text);
+  font-family: "DM Mono", ui-monospace, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 #root {
+  position: relative;
+  z-index: 2;
   min-height: 100vh;
+}
+
+/* Grain overlay (~0.4 opacity via filter) */
+.arb-grain-svg {
+  position: fixed;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+body::after {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.4;
+  filter: url(#arb-grain);
+  mix-blend-mode: overlay;
 }
 
 @keyframes eval-modal-in {

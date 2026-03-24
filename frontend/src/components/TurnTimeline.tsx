@@ -4,13 +4,25 @@ import type { DebateTurn } from "@/types/debate";
 interface Props {
   turns: DebateTurn[];
   models: { pro: string; against: string };
-  /** Pause (ms) after each message before the next “thinking” phase. 0 = show all at once. */
   staggerMs?: number;
-  /** Duration (ms) of the thinking placeholder before a message appears. */
   thinkingMs?: number;
   tone?: "default" | "secondary";
-  /** Fired once per `turns` run when every message is visible and not thinking (including after “Show all”). */
   onDebateComplete?: () => void;
+}
+
+function biasTagsForTurn(t: DebateTurn, j: number) {
+  const temp = t.temperature;
+  const emphasis = j % 3;
+  const levels = [
+    temp < 0.45 ? "opacity-70" : temp < 0.8 ? "opacity-100" : "opacity-100 ring-1 ring-white/10",
+    temp < 0.5 ? "opacity-60" : "opacity-90",
+    temp < 0.55 ? "opacity-60" : "opacity-90",
+  ];
+  return [
+    { label: "Framing bias", className: `border-red-900/45 bg-red-950/25 text-red-200/75 ${levels[(emphasis + 0) % 3]}` },
+    { label: "Omission bias", className: `border-amber-900/40 bg-amber-950/20 text-amber-200/75 ${levels[(emphasis + 1) % 3]}` },
+    { label: "Authority bias", className: `border-sky-900/45 bg-sky-950/25 text-sky-200/75 ${levels[(emphasis + 2) % 3]}` },
+  ];
 }
 
 export function TurnTimeline({
@@ -18,7 +30,6 @@ export function TurnTimeline({
   models,
   staggerMs = 520,
   thinkingMs = 780,
-  tone = "default",
   onDebateComplete,
 }: Props) {
   const [visible, setVisible] = useState(0);
@@ -110,12 +121,8 @@ export function TurnTimeline({
     };
   }, [turns, staggerMs, thinkingMs, notifyDebateComplete]);
 
-  const panel =
-    tone === "secondary"
-      ? "rounded-xl border border-white/[0.07] bg-[#0c0d11]/80 p-5 md:p-6"
-      : "rounded-xl border border-white/10 bg-ink-800/40 p-5 shadow-panel backdrop-blur";
-
   const liveMode = staggerMs > 0 || thinkingMs > 0;
+  const roundsCount = Math.max(1, Math.ceil(turns.length / 2));
 
   const showAll = () => {
     clearTimersRef.current();
@@ -125,57 +132,60 @@ export function TurnTimeline({
   };
 
   return (
-    <section className={panel}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <section className="border border-arb-border bg-arb-surface">
+      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-arb-border px-4 py-4 sm:px-5">
         <div>
-          <h3 className="text-sm font-semibold tracking-tight text-slate-100">Live exchange</h3>
-          <p className="mt-0.5 text-xs text-slate-500">
-            {models.pro} <span className="text-slate-600">vs</span> {models.against} · {turns.length}{" "}
-            turns · newest first
+          <h3 className="font-bebas text-2xl tracking-wide text-arb-text">TRANSCRIPT</h3>
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-arb-muted">
+            {models.pro} <span className="text-arb-border">·</span> {models.against} · {turns.length} turns ·{" "}
+            {roundsCount} round{roundsCount === 1 ? "" : "s"} · newest first
           </p>
         </div>
         {liveMode && visible < turns.length && (
           <button
             type="button"
             onClick={showAll}
-            className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-slate-400 transition hover:border-white/15 hover:text-slate-300"
+            className="border border-arb-border bg-arb-bg px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-arb-muted transition hover:border-arb-muted hover:text-arb-text"
           >
             Show all
           </button>
         )}
       </div>
 
-      <div className="mt-6 flex flex-col gap-4">
+      <div className="divide-y divide-arb-border">
         {displayed.map((t, j) => {
           const isA = t.side === "A";
           const origIdx = turns.length - 1 - j;
-          const roundBreak = origIdx > 0 && origIdx % 2 === 0;
+          const roundNum = Math.floor(origIdx / 2) + 1;
+          const borderColor = isA ? "border-l-arb-pro" : "border-l-arb-against";
+          const nameColor = isA ? "text-arb-pro" : "text-arb-against";
+          const tags = biasTagsForTurn(t, origIdx);
+
           return (
             <article
               key={t.index}
-              className={`flex w-full ${isA ? "justify-start" : "justify-end"} ${roundBreak ? "mt-2 border-t border-white/[0.06] pt-6" : ""}`}
+              className={`opacity-0 animate-fade-up border-l-[3px] ${borderColor} bg-arb-bg/40 transition-colors hover:bg-arb-bg/55`}
+              style={{ animationDelay: `${Math.min(j, 12) * 48}ms` }}
             >
-              <div
-                className={`w-full max-w-[min(100%,28rem)] rounded-2xl border px-4 py-3.5 sm:px-5 ${
-                  isA
-                    ? "border-violet-500/20 bg-violet-500/[0.06] text-left"
-                    : "border-teal-400/15 bg-teal-400/[0.05] text-left sm:text-right"
-                }`}
-              >
-                <header
-                  className={`flex flex-wrap items-baseline gap-x-2 gap-y-1 ${isA ? "" : "sm:flex-row-reverse sm:justify-end"}`}
-                >
-                  <span className="text-sm font-semibold text-slate-100">{t.modelName}</span>
-                  <span className="rounded border border-white/[0.08] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">
-                    {t.role}
-                  </span>
-                  <span className="text-[10px] font-medium tabular-nums text-slate-600">Turn {origIdx + 1}</span>
-                </header>
-                <p
-                  className={`mt-3 text-[15px] leading-[1.65] text-slate-300 ${isA ? "" : "sm:ml-0 sm:text-right"}`}
-                >
-                  {t.text}
-                </p>
+              <div className="flex gap-4 px-4 py-5 sm:px-5">
+                <div className="w-[120px] shrink-0">
+                  <p className={`font-mono text-xs font-medium leading-tight ${nameColor}`}>{t.modelName}</p>
+                  <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.12em] text-arb-muted">{t.role}</p>
+                  <p className="mt-3 font-mono text-[10px] tabular-nums text-arb-muted">R{roundNum}</p>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-serif text-lg italic leading-relaxed text-arb-text/95 sm:text-[1.125rem]">{t.text}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {tags.map((tag) => (
+                      <span
+                        key={tag.label}
+                        className={`border px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider ${tag.className}`}
+                      >
+                        {tag.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </article>
           );
@@ -183,30 +193,24 @@ export function TurnTimeline({
       </div>
 
       {thinking && visible < turns.length && (
-        <div
-          className="mt-2 flex justify-center sm:justify-start"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <div className="w-full max-w-[min(100%,28rem)] rounded-2xl border border-dashed border-white/[0.1] bg-white/[0.02] px-4 py-5">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-slate-500 opacity-40" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-slate-500" />
-              </span>
-              Thinking…
-            </div>
-            <div className="mt-4 space-y-2">
-              <div className="h-2.5 max-w-md rounded bg-white/[0.06]" style={{ width: "58%" }} />
-              <div className="h-2.5 max-w-lg rounded bg-white/[0.04]" style={{ width: "78%" }} />
-              <div className="h-2.5 max-w-xs rounded bg-white/[0.04]" style={{ width: "42%" }} />
-            </div>
+        <div className="border-t border-arb-border px-4 py-5 sm:px-5" aria-live="polite" aria-busy="true">
+          <div className="flex max-w-md items-center gap-2 font-mono text-xs text-arb-muted">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-arb-muted opacity-40" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-arb-muted" />
+            </span>
+            EVALUATING RESPONSE…
+          </div>
+          <div className="mt-4 space-y-2">
+            <div className="h-1 max-w-md bg-arb-border" style={{ width: "58%" }} />
+            <div className="h-1 max-w-lg bg-arb-border/80" style={{ width: "78%" }} />
+            <div className="h-1 max-w-xs bg-arb-border/80" style={{ width: "42%" }} />
           </div>
         </div>
       )}
 
       {liveMode && visible < turns.length && !thinking && (
-        <p className="mt-4 text-center text-xs text-slate-600">
+        <p className="border-t border-arb-border py-3 text-center font-mono text-[10px] tabular-nums text-arb-muted">
           {visible} / {turns.length} revealed
         </p>
       )}
