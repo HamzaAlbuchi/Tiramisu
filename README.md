@@ -108,7 +108,9 @@ src/main/java/com/example/demo/
     └── RuleBasedJudgeBrain.java
 
 src/main/resources/static/
-├── index.html                    # Main: multi-model debate UI
+├── index.html                    # Main: AI Debate Arena (links styles.css + app.js)
+├── styles.css                    # Debate UI styles
+├── app.js                        # Debate UI logic (fetch /api/debate/run)
 └── world.html                    # Secondary: island simulation dashboard
 
 src/test/java/com/example/demo/
