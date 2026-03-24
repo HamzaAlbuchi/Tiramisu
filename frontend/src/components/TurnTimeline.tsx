@@ -92,7 +92,7 @@ export function TurnTimeline({
         v += 1;
         setVisible(v);
         if (v >= turns.length) {
-          fireComplete();
+          notifyDebateComplete();
           return;
         }
         const tPause = window.setTimeout(step, staggerMs);
