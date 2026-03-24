@@ -42,8 +42,13 @@ public class GeminiClient {
     @Value("${gemini.api.key:}")
     private String apiKey;
 
-    /** Override via GEMINI_MODEL_ID if a model is unavailable for your API key (e.g. gemini-1.5-flash). */
-    @Value("${gemini.model.id:gemini-2.0-flash}")
+    /**
+     * Model id for {@code .../models/{id}:generateContent}. Override via {@code GEMINI_MODEL_ID}.
+     * Do not use legacy ids like {@code gemini-1.5-flash} — they are not available for v1beta generateContent.
+     * Try {@code gemini-2.5-flash} (stable), {@code gemini-flash-latest}, or list models:
+     * {@code GET https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KEY}
+     */
+    @Value("${gemini.model.id:gemini-2.5-flash}")
     private String modelId;
 
     public GeminiClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
