@@ -1,0 +1,4 @@
+# Prefer Docker over Railpack: this repo is a monorepo (backend + frontend) with no
+# package.json/pom.xml at the root, so Railpack cannot auto-detect a build.
+[build]
+builder = "DOCKERFILE"

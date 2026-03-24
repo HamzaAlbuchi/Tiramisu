@@ -51,14 +51,25 @@ Response includes `topic`, `style`, `rounds`, `exchangeCount`, `models` (`pro`, 
 
 Build a separate UI against these endpoints if you need the grid again.
 
-## Docker (backend)
+## Docker
 
-From the repo root:
+**From the repo root** (same layout Railway uses):
+
+```bash
+docker build -t tiramisu .
+docker run -p 8080:8080 -e PORT=8080 tiramisu
+```
+
+To build only the backend folder as context (optional):
 
 ```bash
 docker build -t tiramisu-backend ./backend
 docker run -p 8080:8080 -e PORT=8080 tiramisu-backend
 ```
+
+### Railway
+
+Deploy from the **repository root**. A root `Dockerfile` and `railway.toml` select the **Dockerfile** builder so Railpack does not try (and fail) to infer a build from an empty root. Alternatively, set the service **Root Directory** to `backend` and use `backend/Dockerfile` only.
 
 ## CI
 
