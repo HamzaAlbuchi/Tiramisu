@@ -1,5 +1,8 @@
 package com.example.demo.debate.api;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Aggregated judge outcome: winner key, confidence, rubric metrics, and analysis text.
  */
@@ -11,16 +14,19 @@ public class DebateEvaluationDto {
     private final String winnerLabel;
     /** 0–1 */
     private final double confidence;
-    /** CLEAR_WIN, SLIGHT_WIN, or DRAW */
+    /** e.g. decisive, narrow, draw, error, or legacy CLEAR_WIN / SLIGHT_WIN */
     private final String verdictType;
     private final double hallucinationRiskScore;
     private final double accuracySignalScore;
     private final DebateMetricsDto metrics;
     private final DebateAnalysisDto analysis;
+    private final List<TurnAnalysisDto> turnAnalysis;
+    private final BiasSummaryDto biasSummary;
 
     public DebateEvaluationDto(String winner, String winnerLabel, double confidence, String verdictType,
                                double hallucinationRiskScore, double accuracySignalScore,
-                               DebateMetricsDto metrics, DebateAnalysisDto analysis) {
+                               DebateMetricsDto metrics, DebateAnalysisDto analysis,
+                               List<TurnAnalysisDto> turnAnalysis, BiasSummaryDto biasSummary) {
         this.winner = winner;
         this.winnerLabel = winnerLabel;
         this.confidence = confidence;
@@ -29,6 +35,8 @@ public class DebateEvaluationDto {
         this.accuracySignalScore = accuracySignalScore;
         this.metrics = metrics;
         this.analysis = analysis;
+        this.turnAnalysis = turnAnalysis != null ? turnAnalysis : Collections.<TurnAnalysisDto>emptyList();
+        this.biasSummary = biasSummary;
     }
 
     public String getWinner() {
@@ -61,5 +69,13 @@ public class DebateEvaluationDto {
 
     public DebateAnalysisDto getAnalysis() {
         return analysis;
+    }
+
+    public List<TurnAnalysisDto> getTurnAnalysis() {
+        return turnAnalysis;
+    }
+
+    public BiasSummaryDto getBiasSummary() {
+        return biasSummary;
     }
 }

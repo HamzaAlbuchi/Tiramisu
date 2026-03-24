@@ -1,5 +1,11 @@
 package com.example.demo.debate;
 
+import com.example.demo.debate.api.BiasSummaryDto;
+import com.example.demo.debate.api.TurnAnalysisDto;
+
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Judge output: legacy summary lines, risk/accuracy scores, verdict classification,
  * confidence, and structured analysis. Swap generation for real LLM judge output.
@@ -18,11 +24,14 @@ public class DebateVerdict {
     /** 0–1 */
     private final double confidence;
     private final JudgeAnalysis judgeAnalysis;
+    private final List<TurnAnalysisDto> turnAnalysis;
+    private final BiasSummaryDto biasSummary;
 
     public DebateVerdict(String summary, String hallucinationBias, String accuracyAssessment,
                          double hallucinationRiskScore, double accuracySignalScore,
                          String verdictType, String winnerKey, double confidence,
-                         JudgeAnalysis judgeAnalysis) {
+                         JudgeAnalysis judgeAnalysis,
+                         List<TurnAnalysisDto> turnAnalysis, BiasSummaryDto biasSummary) {
         this.summary = summary;
         this.hallucinationBias = hallucinationBias;
         this.accuracyAssessment = accuracyAssessment;
@@ -32,6 +41,8 @@ public class DebateVerdict {
         this.winnerKey = winnerKey;
         this.confidence = confidence;
         this.judgeAnalysis = judgeAnalysis;
+        this.turnAnalysis = turnAnalysis != null ? turnAnalysis : Collections.<TurnAnalysisDto>emptyList();
+        this.biasSummary = biasSummary;
     }
 
     public String getSummary() {
@@ -68,5 +79,13 @@ public class DebateVerdict {
 
     public JudgeAnalysis getJudgeAnalysis() {
         return judgeAnalysis;
+    }
+
+    public List<TurnAnalysisDto> getTurnAnalysis() {
+        return turnAnalysis;
+    }
+
+    public BiasSummaryDto getBiasSummary() {
+        return biasSummary;
     }
 }

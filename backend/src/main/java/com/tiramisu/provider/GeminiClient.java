@@ -1,0 +1,236 @@
+package com.tiramisu.provider;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+// TODO: Add GeminiProClient for gemini-1.5-pro model
+// TODO: Abstract into LlmProvider interface when adding OpenAI or Anthropic
+// TODO: When adding OpenAI — use messages[] array with same role alternation pattern
+// TODO: When adding Anthropic — use messages[] with "human" | "assistant" roles instead of "user" | "model"
+
+/**
+ * Minimal Gemini REST client using {@link RestTemplate}.
+ */
+@Service
+public class GeminiClient {
+
+    private static final Logger log = LoggerFactory.getLogger(GeminiClient.class);
+
+    private static final String ENDPOINT =
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=%s";
+
+    private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper;
+
+    @Value("${gemini.api.key:}")
+    private String apiKey;
+
+    public GeminiClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
+        this.restTemplate = restTemplate;
+        this.objectMapper = objectMapper;
+    }
+
+    /**
+     * Calls Gemini generateContent. On any failure returns empty string (never throws).
+     */
+    public String complete(String systemPrompt, String userPrompt, double temperature) {
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            log.warn("Gemini API key is empty; skipping request.");
+            return "";
+        }
+        if ("placeholder".equalsIgnoreCase(apiKey.trim())) {
+            log.debug("Gemini API key is placeholder; skipping HTTP call.");
+            return "";
+        }
+        try {
+            String url = String.format(ENDPOINT, apiKey.trim());
+            Map<String, Object> body = buildRequestBody(systemPrompt, userPrompt, temperature);
+            String json = objectMapper.writeValueAsString(body);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> entity = new HttpEntity<String>(json, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                log.error("Gemini API non-success: status={}", response.getStatusCode());
+                return "";
+            }
+            return extractText(response.getBody());
+        } catch (RestClientException e) {
+            log.error("Gemini API call failed: {}", e.getMessage());
+            return "";
+        } catch (Exception e) {
+            log.error("Gemini request or parse failed: {}", e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * Multi-turn generateContent. Enforces Gemini rules: roles alternate, first and last are {@code user}.
+     * {@link #validateHistory(List)} throws {@link IllegalStateException} if invalid.
+     * On HTTP/parse errors returns empty string (never throws those).
+     */
+    public String completeWithHistory(String systemPrompt, List<GeminiMessage> history, double temperature) {
+        validateHistory(history);
+        if (apiKey == null || apiKey.trim().isEmpty()) {
+            log.warn("Gemini API key is empty; skipping request.");
+            return "";
+        }
+        if ("placeholder".equalsIgnoreCase(apiKey.trim())) {
+            log.debug("Gemini API key is placeholder; skipping HTTP call.");
+            return "";
+        }
+        try {
+            String url = String.format(ENDPOINT, apiKey.trim());
+            Map<String, Object> body = buildRequestBodyWithHistory(systemPrompt, history, temperature);
+            String json = objectMapper.writeValueAsString(body);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<String> entity = new HttpEntity<String>(json, headers);
+
+            ResponseEntity<String> response = restTemplate.postForEntity(url, entity, String.class);
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                log.error("Gemini API non-success: status={}", response.getStatusCode());
+                return "";
+            }
+            return extractText(response.getBody());
+        } catch (RestClientException e) {
+            log.error("Gemini API call failed: {}", e.getMessage());
+            return "";
+        } catch (Exception e) {
+            log.error("Gemini request or parse failed: {}", e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * Validates conversation history for Gemini {@code contents}.
+     *
+     * @throws IllegalStateException if roles do not alternate, or first/last are not {@code user}
+     */
+    public static void validateHistory(List<GeminiMessage> history) {
+        if (history == null || history.isEmpty()) {
+            throw new IllegalStateException("History must be non-empty");
+        }
+        if (!"user".equals(history.get(0).getRole())) {
+            throw new IllegalStateException("First message must be role user, got: " + history.get(0).getRole());
+        }
+        int last = history.size() - 1;
+        if (!"user".equals(history.get(last).getRole())) {
+            throw new IllegalStateException("Last message must be role user, got: " + history.get(last).getRole());
+        }
+        for (int i = 0; i < history.size(); i++) {
+            GeminiMessage m = history.get(i);
+            if (m.getRole() == null) {
+                throw new IllegalStateException("Null role at index " + i);
+            }
+            String r = m.getRole();
+            if (!"user".equals(r) && !"model".equals(r)) {
+                throw new IllegalStateException("Invalid role at index " + i + ": " + r);
+            }
+            if (i > 0) {
+                String prev = history.get(i - 1).getRole();
+                if (r.equals(prev)) {
+                    throw new IllegalStateException("Roles must alternate; duplicate at index " + i);
+                }
+            }
+        }
+    }
+
+    private static Map<String, Object> buildRequestBodyWithHistory(
+            String systemPrompt, List<GeminiMessage> history, double temperature) {
+        Map<String, Object> sysPart = new LinkedHashMap<String, Object>();
+        sysPart.put("text", systemPrompt);
+
+        Map<String, Object> sysInst = new LinkedHashMap<String, Object>();
+        sysInst.put("parts", Collections.singletonList(sysPart));
+
+        List<Map<String, Object>> contents = new ArrayList<Map<String, Object>>();
+        for (GeminiMessage gm : history) {
+            Map<String, Object> part = new LinkedHashMap<String, Object>();
+            part.put("text", gm.getText() != null ? gm.getText() : "");
+
+            Map<String, Object> block = new LinkedHashMap<String, Object>();
+            block.put("role", gm.getRole());
+            block.put("parts", Collections.singletonList(part));
+            contents.add(block);
+        }
+
+        Map<String, Object> generationConfig = new LinkedHashMap<String, Object>();
+        generationConfig.put("temperature", temperature);
+        generationConfig.put("maxOutputTokens", 500);
+
+        Map<String, Object> root = new LinkedHashMap<String, Object>();
+        root.put("system_instruction", sysInst);
+        root.put("contents", contents);
+        root.put("generationConfig", generationConfig);
+        return root;
+    }
+
+    private static Map<String, Object> buildRequestBody(String systemPrompt, String userPrompt, double temperature) {
+        Map<String, Object> sysPart = new LinkedHashMap<String, Object>();
+        sysPart.put("text", systemPrompt);
+
+        Map<String, Object> sysInst = new LinkedHashMap<String, Object>();
+        sysInst.put("parts", Collections.singletonList(sysPart));
+
+        Map<String, Object> userPart = new LinkedHashMap<String, Object>();
+        userPart.put("text", userPrompt);
+
+        Map<String, Object> userContent = new LinkedHashMap<String, Object>();
+        userContent.put("role", "user");
+        userContent.put("parts", Collections.singletonList(userPart));
+
+        Map<String, Object> generationConfig = new LinkedHashMap<String, Object>();
+        generationConfig.put("temperature", temperature);
+        generationConfig.put("maxOutputTokens", 500);
+
+        Map<String, Object> root = new LinkedHashMap<String, Object>();
+        root.put("system_instruction", sysInst);
+        root.put("contents", Collections.singletonList(userContent));
+        root.put("generationConfig", generationConfig);
+        return root;
+    }
+
+    private String extractText(String responseBody) {
+        try {
+            JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode candidates = root.path("candidates");
+            if (!candidates.isArray() || candidates.size() == 0) {
+                log.warn("Gemini response has no candidates");
+                return "";
+            }
+            JsonNode parts = candidates.get(0).path("content").path("parts");
+            if (!parts.isArray() || parts.size() == 0) {
+                log.warn("Gemini response has no content parts");
+                return "";
+            }
+            JsonNode textNode = parts.get(0).path("text");
+            if (textNode.isMissingNode() || textNode.asText("").isEmpty()) {
+                return "";
+            }
+            return textNode.asText("");
+        } catch (Exception e) {
+            log.error("Failed to parse Gemini response JSON: {}", e.getMessage());
+            return "";
+        }
+    }
+}

@@ -64,7 +64,9 @@ public class JudgeService {
                 v.getHallucinationRiskScore(),
                 v.getAccuracySignalScore(),
                 metrics,
-                analysis);
+                analysis,
+                v.getTurnAnalysis(),
+                v.getBiasSummary());
 
         return new DebateApiResponse(
                 result.getTopic(),
