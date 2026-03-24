@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -32,14 +33,18 @@ public class GeminiClient {
 
     private static final Logger log = LoggerFactory.getLogger(GeminiClient.class);
 
-    private static final String ENDPOINT =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=%s";
+    private static final String ENDPOINT_TEMPLATE =
+            "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s";
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
     @Value("${gemini.api.key:}")
     private String apiKey;
+
+    /** Override via GEMINI_MODEL_ID if a model is unavailable for your API key (e.g. gemini-1.5-flash). */
+    @Value("${gemini.model.id:gemini-2.0-flash}")
+    private String modelId;
 
     public GeminiClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
@@ -59,7 +64,7 @@ public class GeminiClient {
             return "";
         }
         try {
-            String url = String.format(ENDPOINT, apiKey.trim());
+            String url = String.format(ENDPOINT_TEMPLATE, modelId.trim(), apiKey.trim());
             Map<String, Object> body = buildRequestBody(systemPrompt, userPrompt, temperature);
             String json = objectMapper.writeValueAsString(body);
 
@@ -98,7 +103,7 @@ public class GeminiClient {
             return "";
         }
         try {
-            String url = String.format(ENDPOINT, apiKey.trim());
+            String url = String.format(ENDPOINT_TEMPLATE, modelId.trim(), apiKey.trim());
             Map<String, Object> body = buildRequestBodyWithHistory(systemPrompt, history, temperature);
             String json = objectMapper.writeValueAsString(body);
 
@@ -112,6 +117,9 @@ public class GeminiClient {
                 return "";
             }
             return extractText(response.getBody());
+        } catch (HttpStatusCodeException e) {
+            log.error("Gemini HTTP {} — body: {}", e.getStatusCode().value(), truncate(e.getResponseBodyAsString(), 1200));
+            return "";
         } catch (RestClientException e) {
             log.error("Gemini API call failed: {}", e.getMessage());
             return "";
@@ -179,7 +187,8 @@ public class GeminiClient {
         generationConfig.put("maxOutputTokens", 500);
 
         Map<String, Object> root = new LinkedHashMap<String, Object>();
-        root.put("system_instruction", sysInst);
+        // REST JSON uses camelCase per google.api HTTP proto mapping
+        root.put("systemInstruction", sysInst);
         root.put("contents", contents);
         root.put("generationConfig", generationConfig);
         return root;
@@ -204,7 +213,7 @@ public class GeminiClient {
         generationConfig.put("maxOutputTokens", 500);
 
         Map<String, Object> root = new LinkedHashMap<String, Object>();
-        root.put("system_instruction", sysInst);
+        root.put("systemInstruction", sysInst);
         root.put("contents", Collections.singletonList(userContent));
         root.put("generationConfig", generationConfig);
         return root;
@@ -213,14 +222,37 @@ public class GeminiClient {
     private String extractText(String responseBody) {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
+            JsonNode promptFeedback = root.path("promptFeedback");
+            if (promptFeedback.isMissingNode() || promptFeedback.isNull()) {
+                promptFeedback = root.path("prompt_feedback");
+            }
+            if (!promptFeedback.isMissingNode() && !promptFeedback.isNull()) {
+                JsonNode blockReason = promptFeedback.path("blockReason");
+                if (blockReason.isMissingNode()) {
+                    blockReason = promptFeedback.path("block_reason");
+                }
+                if (!blockReason.isMissingNode() && !blockReason.asText("").isEmpty()) {
+                    log.warn("Gemini blocked prompt: blockReason={} — {}", blockReason.asText(),
+                            truncate(responseBody, 800));
+                    return "";
+                }
+            }
             JsonNode candidates = root.path("candidates");
             if (!candidates.isArray() || candidates.size() == 0) {
-                log.warn("Gemini response has no candidates");
+                log.warn("Gemini response has no candidates — promptFeedback={} — snippet={}",
+                        promptFeedback.isMissingNode() ? "none" : promptFeedback.toString(),
+                        truncate(responseBody, 800));
                 return "";
             }
-            JsonNode parts = candidates.get(0).path("content").path("parts");
+            JsonNode first = candidates.get(0);
+            JsonNode finishReason = first.path("finishReason");
+            if (!finishReason.isMissingNode() && finishReason.asText("").length() > 0) {
+                log.debug("Gemini finishReason={}", finishReason.asText());
+            }
+            JsonNode parts = first.path("content").path("parts");
             if (!parts.isArray() || parts.size() == 0) {
-                log.warn("Gemini response has no content parts");
+                log.warn("Gemini candidate has no content.parts (finishReason={}) — {}",
+                        finishReason.asText(""), truncate(responseBody, 800));
                 return "";
             }
             JsonNode textNode = parts.get(0).path("text");
@@ -232,5 +264,16 @@ public class GeminiClient {
             log.error("Failed to parse Gemini response JSON: {}", e.getMessage());
             return "";
         }
+    }
+
+    private static String truncate(String s, int max) {
+        if (s == null) {
+            return "";
+        }
+        String t = s.trim();
+        if (t.length() <= max) {
+            return t;
+        }
+        return t.substring(0, max) + "…";
     }
 }
