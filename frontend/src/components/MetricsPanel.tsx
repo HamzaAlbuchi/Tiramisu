@@ -28,9 +28,11 @@ interface Props {
 
 export function MetricsPanel({ models, metrics }: Props) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-ink-800/40 p-5 shadow-panel backdrop-blur">
-      <h3 className="font-display text-lg font-semibold tracking-tight text-slate-100">Rubric metrics</h3>
-      <p className="mt-1 text-xs text-mist">0–10 per dimension; stub heuristics from the backend.</p>
+    <section className="rounded-2xl border border-white/10 bg-ink-800/50 p-5 shadow-panel backdrop-blur md:p-6">
+      <h3 className="font-display text-base font-semibold tracking-tight text-slate-100 md:text-lg">
+        Evaluation metrics
+      </h3>
+      <p className="mt-1 text-xs text-mist">Rubric scores (0–10) · stub heuristics from the backend.</p>
       <div className="mt-4 space-y-4">
         {ROWS.map(({ key, label }) => {
           const m = metrics[key];
@@ -58,6 +60,6 @@ export function MetricsPanel({ models, metrics }: Props) {
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }

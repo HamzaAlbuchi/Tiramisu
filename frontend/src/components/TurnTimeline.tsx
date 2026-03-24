@@ -5,9 +5,11 @@ interface Props {
   turns: DebateTurn[];
   models: { pro: string; against: string };
   autoRevealMs?: number;
+  /** Softer panel for dashboard hierarchy (transcript secondary to verdict/metrics). */
+  tone?: "default" | "secondary";
 }
 
-export function TurnTimeline({ turns, models, autoRevealMs = 0 }: Props) {
+export function TurnTimeline({ turns, models, autoRevealMs = 0, tone = "default" }: Props) {
   const [visible, setVisible] = useState(0);
 
   useEffect(() => {
@@ -29,13 +31,18 @@ export function TurnTimeline({ turns, models, autoRevealMs = 0 }: Props) {
   const showAll = () => setVisible(turns.length);
   const step = () => setVisible((v) => Math.min(turns.length, v + 1));
 
+  const panel =
+    tone === "secondary"
+      ? "rounded-2xl border border-white/[0.06] bg-ink-900/25 p-5 backdrop-blur md:p-6"
+      : "rounded-2xl border border-white/10 bg-ink-800/40 p-5 shadow-panel backdrop-blur";
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-ink-800/40 p-5 shadow-panel backdrop-blur">
+    <section className={panel}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="font-display text-lg font-semibold text-slate-100">Transcript</h3>
-          <p className="text-xs text-mist">
-            {models.pro} vs {models.against} · {turns.length} messages
+          <h3 className="font-display text-base font-semibold text-slate-200 md:text-lg">Transcript</h3>
+          <p className="mt-0.5 text-xs text-mist">
+            Supporting exchange · {models.pro} vs {models.against} · {turns.length} messages
           </p>
         </div>
         {autoRevealMs > 0 && (
@@ -87,6 +94,6 @@ export function TurnTimeline({ turns, models, autoRevealMs = 0 }: Props) {
           {visible} / {turns.length} shown
         </p>
       )}
-    </div>
+    </section>
   );
 }
