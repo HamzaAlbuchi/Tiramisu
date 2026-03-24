@@ -1,7 +1,19 @@
 import type { DebateRequestBody, DebateResponse } from "@/types/debate";
 
-function normalizeBase(raw: string): string {
-  return raw.replace(/\/$/, "");
+/** Railway users often paste host only; fetch needs an absolute URL with a scheme or it hits the SPA origin. */
+function normalizeApiOrigin(raw: string): string {
+  let s = raw.trim();
+  if (!s) return "";
+  if (!/^https?:\/\//i.test(s)) {
+    if (s.startsWith("//")) {
+      s = `https:${s}`;
+    } else if (/^(localhost|127\.0\.0\.1)(:|\/|$)/i.test(s)) {
+      s = `http://${s}`;
+    } else {
+      s = `https://${s}`;
+    }
+  }
+  return s.replace(/\/$/, "");
 }
 
 /**
@@ -12,16 +24,16 @@ function normalizeBase(raw: string): string {
 function baseUrl(): string {
   const fromVite = import.meta.env.VITE_API_BASE_URL;
   if (typeof fromVite === "string" && fromVite.length > 0) {
-    return normalizeBase(fromVite);
+    return normalizeApiOrigin(fromVite);
   }
   if (typeof window !== "undefined" && typeof window.__TIRAMISU_API_BASE__ === "string" && window.__TIRAMISU_API_BASE__.length > 0) {
-    return normalizeBase(window.__TIRAMISU_API_BASE__);
+    return normalizeApiOrigin(window.__TIRAMISU_API_BASE__);
   }
   return "";
 }
 
 const MISSING_API_URL_MSG =
-  "Set VITE_API_BASE_URL on the frontend Railway service to your API origin (e.g. https://backend-production-4ceb.up.railway.app — no trailing slash). With Docker, it is applied when the container starts; redeploy after changing it. Also allow this site in APP_CORS_ORIGINS on the API.";
+  "Set VITE_API_BASE_URL on the frontend service (host or full https:// URL is fine). Redeploy after changing it. Set APP_CORS_ORIGINS on the API to this frontend URL.";
 
 export async function runDebate(body: DebateRequestBody): Promise<DebateResponse> {
   const apiBase = baseUrl();
@@ -45,7 +57,7 @@ export async function runDebate(body: DebateRequestBody): Promise<DebateResponse
   const trimmed = text.trimStart();
   if (trimmed.startsWith("<") || trimmed.toLowerCase().startsWith("<!doctype")) {
     throw new Error(
-      `Expected JSON from API but got HTML (request was: ${url}). Fix: set VITE_API_BASE_URL on the frontend service to your API origin (no trailing slash), redeploy; set APP_CORS_ORIGINS on the API to this site's URL.`
+      `Expected JSON from API but got HTML (request was: ${url}). Use a full API URL (https://…); host-only values are auto-fixed. Check CORS (APP_CORS_ORIGINS on API).`
     );
   }
 
