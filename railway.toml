@@ -1,5 +1,6 @@
-# API service: connect this repo with Root Directory EMPTY (repo root).
-# A second service should use Root Directory "frontend" and frontend/railway.toml.
+# API service only: Root Directory EMPTY (repo root).
+# Do not set builder here — a global DOCKERFILE builder breaks the second service, which uses
+# frontend/ context only (repo-root Dockerfile runs COPY backend/ and fails there).
+# Railway auto-detects the root Dockerfile for this service.
 [build]
-builder = "DOCKERFILE"
 watchPatterns = ["Dockerfile", "railway.toml", ".dockerignore", "backend/**"]

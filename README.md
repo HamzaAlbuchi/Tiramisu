@@ -77,7 +77,8 @@ Railway does **not** create two services automatically: add both from the same G
 
 2. **Web (Vite SPA)**
    - New → **same repo** → set **Root Directory** to `frontend`.
-   - Uses `frontend/railway.toml`: installs deps, `npm run build`, then `serve` on `$PORT`.
+   - Uses `frontend/Dockerfile` + `frontend/railway.toml` (not the repo-root Docker image, which expects a `backend/` folder in context).
+   - If you see `"/backend": not found`, the frontend job is using the **wrong Dockerfile** — confirm Root Directory is `frontend` and redeploy.
 
 **Variables**
 
