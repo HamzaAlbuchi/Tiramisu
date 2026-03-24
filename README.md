@@ -88,6 +88,8 @@ Railway does **not** create two services automatically: add both from the same G
    - Set **Config as code** → `/frontend/railway.toml` (`Dockerfile` builder; deploy only when `frontend/**` changes).
    - If you see `"/backend": not found`, the web service is using the **repo-root** image — confirm Root Directory is `frontend` and that this config path is set.
 
+**If both services redeploy on every commit:** each service must use **its own** “Config as code” file (`/backend/railway.toml` vs `/frontend/railway.toml`). If either service falls back to a single root `railway.toml` or shares the wrong file, Railway’s watch rules can overlap and trigger two builds per push. Re-check both services in the dashboard.
+
 **Variables**
 
 | Service | Variable | Purpose |

@@ -8,6 +8,8 @@ interface Props {
   exchangeCount?: number;
   rounds?: number;
   onExportJson?: () => void;
+  /** Hide the top verdict block (e.g. when verdict is shown separately in a modal). */
+  omitVerdict?: boolean;
 }
 
 export function EvaluationCard({
@@ -18,6 +20,7 @@ export function EvaluationCard({
   exchangeCount,
   rounds,
   onExportJson,
+  omitVerdict = false,
 }: Props) {
   const isHero = variant === "hero";
   const { analysis } = evaluation;
@@ -63,25 +66,25 @@ export function EvaluationCard({
         </div>
       )}
 
-      {/* 1. Verdict — dominant */}
-      <div className="border-b border-white/[0.08] pb-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Verdict</p>
-        <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-50 md:text-[1.75rem]">
-          {evaluation.winnerLabel}
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <span className="rounded-md border border-white/[0.1] bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-slate-400">
-            {evaluation.verdictType.replace(/_/g, " ")}
-          </span>
-          <span className="text-sm tabular-nums text-slate-500">
-            Confidence <span className="font-medium text-slate-300">{(evaluation.confidence * 100).toFixed(0)}%</span>
-          </span>
+      {!omitVerdict && (
+        <div className="border-b border-white/[0.08] pb-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Verdict</p>
+          <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-50 md:text-[1.75rem]">
+            {evaluation.winnerLabel}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <span className="rounded-md border border-white/[0.1] bg-white/[0.04] px-2.5 py-1 text-xs font-medium text-slate-400">
+              {evaluation.verdictType.replace(/_/g, " ")}
+            </span>
+            <span className="text-sm tabular-nums text-slate-500">
+              Confidence <span className="font-medium text-slate-300">{(evaluation.confidence * 100).toFixed(0)}%</span>
+            </span>
+          </div>
+          <p className="mt-5 text-sm leading-relaxed text-slate-400 md:text-[0.9375rem]">{analysis.summary}</p>
         </div>
-        <p className="mt-5 text-sm leading-relaxed text-slate-400 md:text-[0.9375rem]">{analysis.summary}</p>
-      </div>
+      )}
 
-      {/* 2. Risk signals — compact, calm */}
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      <div className={`grid gap-3 sm:grid-cols-2 ${omitVerdict ? "" : "mt-6"}`}>
         <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600">Hallucination risk</p>
           <p className="mt-2 text-xs leading-relaxed text-slate-500">{analysis.hallucinationBias}</p>

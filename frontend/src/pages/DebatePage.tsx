@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DebateForm, type DebateFormValues } from "@/components/DebateForm";
-import { EvaluationCard } from "@/components/EvaluationCard";
-import { MetricsPanel } from "@/components/MetricsPanel";
+import { EvaluationModal } from "@/components/EvaluationModal";
 import { TurnTimeline } from "@/components/TurnTimeline";
 import { runDebate } from "@/services/api";
 import type { DebateResponse } from "@/types/debate";
@@ -15,6 +14,9 @@ export function DebatePage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DebateResponse | null>(null);
   const [headerCompact, setHeaderCompact] = useState(false);
+  const [showEvalCta, setShowEvalCta] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const ctaDelayRef = useRef<number>();
 
   useEffect(() => {
     const onScroll = () => setHeaderCompact(window.scrollY > 72);
@@ -22,6 +24,15 @@ export function DebatePage() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    setShowEvalCta(false);
+    setModalOpen(false);
+    if (ctaDelayRef.current != null) {
+      window.clearTimeout(ctaDelayRef.current);
+      ctaDelayRef.current = undefined;
+    }
+  }, [result]);
 
   const onSubmit = useCallback(async (v: DebateFormValues) => {
     setLoading(true);
@@ -53,7 +64,28 @@ export function DebatePage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleDebateComplete = useCallback(() => {
+    if (ctaDelayRef.current != null) {
+      window.clearTimeout(ctaDelayRef.current);
+    }
+    ctaDelayRef.current = window.setTimeout(() => {
+      setShowEvalCta(true);
+      ctaDelayRef.current = undefined;
+    }, 680);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (ctaDelayRef.current != null) {
+        window.clearTimeout(ctaDelayRef.current);
+      }
+    };
+  }, []);
+
   const models = result?.models ?? DEFAULT_MODELS;
+  const timelineKey = result
+    ? `${result.topic}-${result.rounds}-${result.exchangeCount}-${result.turns.length}`
+    : "idle";
 
   return (
     <div className="min-h-screen pb-16">
@@ -71,11 +103,11 @@ export function DebatePage() {
                   headerCompact ? "text-base md:text-lg" : "text-lg md:text-xl"
                 }`}
               >
-                Model evaluation
+                Model debate
               </h1>
               {!headerCompact && (
                 <p className="mt-2 max-w-2xl text-xs leading-relaxed text-slate-600">
-                  Structured verdict and rubric from a controlled multi-model run.
+                  Watch the exchange, then open the evaluation when you are ready.
                 </p>
               )}
               <div
@@ -126,54 +158,49 @@ export function DebatePage() {
       </header>
 
       <main className={`${SHELL} py-8 lg:py-10`}>
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(300px,400px)] lg:items-start lg:gap-12">
-          <div className="min-w-0">
-            <div className="mb-4 flex items-end justify-between gap-2">
-              <div>
-                <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Process</h2>
-                <p className="mt-1 text-sm text-slate-600">Turn-by-turn exchange</p>
-              </div>
+        <div className="mx-auto max-w-2xl">
+          <div className="mb-4 flex items-end justify-between gap-2">
+            <div>
+              <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Debate</h2>
+              <p className="mt-1 text-sm text-slate-600">Live-style feed · verdict after it ends</p>
             </div>
-            {result ? (
+          </div>
+          {result ? (
+            <>
               <TurnTimeline
+                key={timelineKey}
                 turns={result.turns}
                 models={result.models}
                 tone="secondary"
                 thinkingMs={720}
                 staggerMs={480}
+                onDebateComplete={handleDebateComplete}
               />
-            ) : (
-              <div className="rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02] px-6 py-20 text-center">
-                <p className="text-sm text-slate-600">Run an evaluation from the header to populate this panel.</p>
+              <div
+                className={`mt-8 flex flex-col items-center gap-3 transition-all duration-500 ease-out ${
+                  showEvalCta ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
+                }`}
+              >
+                <button
+                  type="button"
+                  disabled={!showEvalCta}
+                  onClick={() => setModalOpen(true)}
+                  className="rounded-lg border border-white/[0.12] bg-white/[0.06] px-5 py-2.5 text-sm font-medium text-slate-200 shadow-[0_0_0_1px_rgba(255,255,255,0.04)] transition hover:border-violet-500/30 hover:bg-white/[0.09] disabled:cursor-default disabled:opacity-0"
+                >
+                  View evaluation
+                </button>
+                <p className="text-center text-[11px] text-slate-600">Winner, scores, and judge notes</p>
               </div>
-            )}
-          </div>
-
-          <aside
-            className={`min-w-0 space-y-5 lg:sticky lg:max-h-[calc(100dvh-5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-1 ${
-              headerCompact ? "lg:top-24" : "lg:top-32"
-            } transition-[top] duration-300`}
-          >
-            <div>
-              <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Outcome</h2>
-              <p className="mt-1 text-sm text-slate-600">Verdict and rubric</p>
+            </>
+          ) : (
+            <div className="rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02] px-6 py-20 text-center">
+              <p className="text-sm text-slate-600">Run a debate from the header to see the exchange here.</p>
             </div>
-            {result ? (
-              <>
-                <EvaluationCard variant="hero" evaluation={result.evaluation} />
-                <MetricsPanel models={result.models} metrics={result.evaluation.metrics} />
-              </>
-            ) : (
-              <div className="rounded-xl border border-dashed border-white/[0.08] bg-white/[0.02] px-5 py-14 text-center lg:py-16">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">Awaiting run</p>
-                <p className="mx-auto mt-2 max-w-[240px] text-sm leading-relaxed text-slate-600">
-                  Results appear here and stay visible while you read the transcript.
-                </p>
-              </div>
-            )}
-          </aside>
+          )}
         </div>
       </main>
+
+      <EvaluationModal open={modalOpen} onClose={() => setModalOpen(false)} result={result} />
     </div>
   );
 }
