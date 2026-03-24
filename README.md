@@ -67,9 +67,28 @@ docker build -t tiramisu-backend ./backend
 docker run -p 8080:8080 -e PORT=8080 tiramisu-backend
 ```
 
-### Railway
+### Railway (two services)
 
-Deploy from the **repository root**. A root `Dockerfile` and `railway.toml` select the **Dockerfile** builder so Railpack does not try (and fail) to infer a build from an empty root. Alternatively, set the service **Root Directory** to `backend` and use `backend/Dockerfile` only.
+Railway does **not** create two services automatically: add both from the same GitHub repo.
+
+1. **API**
+   - New → GitHub repo → leave **Root Directory** empty (repo root).
+   - Uses root `Dockerfile` + `railway.toml` (Docker builder). No `Railpack` inference needed.
+
+2. **Web (Vite SPA)**
+   - New → **same repo** → set **Root Directory** to `frontend`.
+   - Uses `frontend/railway.toml`: installs deps, `npm run build`, then `serve` on `$PORT`.
+
+**Variables**
+
+| Service | Variable | Purpose |
+|--------|-----------|---------|
+| Web | `VITE_API_BASE_URL` | Public URL of the **API** service, e.g. `https://your-api.up.railway.app` (no trailing slash). Required at **build** time. |
+| API | `APP_CORS_ORIGINS` | Comma-separated list of allowed origins; include your **Web** URL, e.g. `https://your-web.up.railway.app`. |
+
+Deploy **API** first, copy its public URL into `VITE_API_BASE_URL` on the Web service, redeploy Web. Set `APP_CORS_ORIGINS` on the API to include the Web URL so the browser can call the API.
+
+Alternatively, for API-only again: set service **Root Directory** to `backend` and use `backend/Dockerfile`; root `Dockerfile` is for “monorepo root” deploys.
 
 ## CI
 

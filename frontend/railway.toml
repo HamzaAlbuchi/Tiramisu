@@ -1,0 +1,11 @@
+# Web/UI service (second Railway service):
+# — In Railway: New Service → same GitHub repo → set Root Directory to "frontend".
+# — Set variable VITE_API_BASE_URL to your API URL (e.g. https://api-service.up.railway.app);
+#   Vite bakes it in at build time.
+[build]
+builder = "RAILPACK"
+buildCommand = "npm install && npm run build"
+watchPatterns = ["frontend/**"]
+
+[deploy]
+startCommand = "npx --yes serve@14.2.4 dist -s -l tcp://0.0.0.0:$PORT"

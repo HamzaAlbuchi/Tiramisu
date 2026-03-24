@@ -1,4 +1,5 @@
-# Prefer Docker over Railpack: this repo is a monorepo (backend + frontend) with no
-# package.json/pom.xml at the root, so Railpack cannot auto-detect a build.
+# API service: connect this repo with Root Directory EMPTY (repo root).
+# A second service should use Root Directory "frontend" and frontend/railway.toml.
 [build]
 builder = "DOCKERFILE"
+watchPatterns = ["Dockerfile", "railway.toml", ".dockerignore", "backend/**"]
