@@ -45,8 +45,7 @@ export async function runDebate(body: DebateRequestBody): Promise<DebateResponse
   const trimmed = text.trimStart();
   if (trimmed.startsWith("<") || trimmed.toLowerCase().startsWith("<!doctype")) {
     throw new Error(
-      "The server returned a web page instead of JSON — the request likely hit the frontend, not the API. " +
-        "Set VITE_API_BASE_URL to your Spring Boot service URL and redeploy the frontend."
+      `Expected JSON from API but got HTML (request was: ${url}). Fix: set VITE_API_BASE_URL on the frontend service to your API origin (no trailing slash), redeploy; set APP_CORS_ORIGINS on the API to this site's URL.`
     );
   }
 

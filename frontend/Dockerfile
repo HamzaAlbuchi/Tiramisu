@@ -16,10 +16,10 @@ FROM node:20-alpine
 WORKDIR /app
 RUN npm install -g serve@14.2.4
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/scripts/inject-api-base.cjs ./inject-api-base.cjs
 
 ENV PORT=8080
 EXPOSE 8080
 
-# Railway exposes service variables at runtime, not during `npm run build`. Write the API base
-# into a tiny script so the SPA reads window.__TIRAMISU_API_BASE__ (see src/services/api.ts).
-CMD ["sh", "-c", "node -e \"require('fs').writeFileSync('dist/api-config.js', 'window.__TIRAMISU_API_BASE__=' + JSON.stringify(process.env.VITE_API_BASE_URL || '') + ';')\" && serve dist -s -l tcp://0.0.0.0:${PORT}"]
+# Inject API origin into index.html from VITE_API_BASE_URL (runtime on Railway).
+CMD ["sh", "-c", "node inject-api-base.cjs && serve dist -s -l tcp://0.0.0.0:${PORT}"]
