@@ -1,4 +1,6 @@
-import type { DebateRequestBody, DebateResponse } from "@/types/debate";
+import type { DebateRequestBody, DebateResponse, DebateTurn } from "@/types/debate";
+
+export type DebateStreamMeta = Pick<DebateResponse, "topic" | "style" | "rounds" | "exchangeCount" | "models">;
 
 /** Railway users often paste host only; fetch needs an absolute URL with a scheme or it hits the SPA origin. */
 function normalizeApiOrigin(raw: string): string {
@@ -66,4 +68,123 @@ export async function runDebate(body: DebateRequestBody): Promise<DebateResponse
   } catch {
     throw new Error("API response was not valid JSON.");
   }
+}
+
+function parseSseBlock(block: string): { event: string; data: string } | null {
+  const lines = block.split(/\r?\n/);
+  let eventName = "message";
+  const dataLines: string[] = [];
+  for (const line of lines) {
+    if (line.startsWith("event:")) {
+      eventName = line.slice(6).trim();
+    } else if (line.startsWith("data:")) {
+      const rest = line.slice(5);
+      dataLines.push(rest.startsWith(" ") ? rest.slice(1) : rest);
+    }
+  }
+  if (dataLines.length === 0) {
+    return null;
+  }
+  return { event: eventName, data: dataLines.join("\n") };
+}
+
+/**
+ * Runs a debate with Server-Sent Events: each model turn is pushed as it is generated, then a final
+ * `complete` payload matches {@link runDebate}.
+ */
+export async function runDebateStream(
+  body: DebateRequestBody,
+  options: {
+    signal?: AbortSignal;
+    onMeta?: (m: DebateStreamMeta) => void;
+    onTurn?: (t: DebateTurn) => void;
+    onComplete?: (r: DebateResponse) => void;
+  } = {},
+): Promise<DebateResponse> {
+  const apiBase = baseUrl();
+  if (import.meta.env.PROD && !apiBase) {
+    throw new Error(MISSING_API_URL_MSG);
+  }
+
+  const path = "/api/debate/stream";
+  const url = apiBase ? `${apiBase}${path}` : path;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+    },
+    body: JSON.stringify(body),
+    signal: options.signal,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text?.slice(0, 500) || `HTTP ${res.status}`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) {
+    throw new Error("No response body (streaming not supported in this browser).");
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let completePayload: DebateResponse | undefined;
+
+  const handleBlock = (block: string) => {
+    const trimmed = block.trim();
+    if (!trimmed) {
+      return;
+    }
+    const parsed = parseSseBlock(trimmed);
+    if (!parsed || !parsed.data.trim()) {
+      return;
+    }
+    const payload = JSON.parse(parsed.data) as unknown;
+    switch (parsed.event) {
+      case "meta":
+        options.onMeta?.(payload as DebateStreamMeta);
+        break;
+      case "turn":
+        options.onTurn?.(payload as DebateTurn);
+        break;
+      case "complete":
+        completePayload = payload as DebateResponse;
+        options.onComplete?.(completePayload);
+        break;
+      case "error": {
+        const msg =
+          typeof payload === "object" && payload !== null && "message" in payload
+            ? String((payload as { message: string }).message)
+            : "Debate stream error";
+        throw new Error(msg);
+      }
+      default:
+        break;
+    }
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split(/\r?\n\r?\n/);
+    buffer = parts.pop() ?? "";
+    for (const part of parts) {
+      handleBlock(part);
+    }
+  }
+
+  if (buffer.trim()) {
+    handleBlock(buffer);
+  }
+
+  if (!completePayload) {
+    throw new Error("Stream ended before the debate completed.");
+  }
+
+  return completePayload;
 }

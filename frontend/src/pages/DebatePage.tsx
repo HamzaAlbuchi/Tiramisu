@@ -3,8 +3,8 @@ import { ArbiterHeader } from "@/components/ArbiterHeader";
 import { DebateForm, type DebateFormValues } from "@/components/DebateForm";
 import { EvaluationModal } from "@/components/EvaluationModal";
 import { TurnTimeline } from "@/components/TurnTimeline";
-import { runDebate } from "@/services/api";
-import type { DebateResponse } from "@/types/debate";
+import { runDebateStream, type DebateStreamMeta } from "@/services/api";
+import type { DebateResponse, DebateTurn } from "@/types/debate";
 
 const SHELL = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
@@ -14,9 +14,24 @@ export function DebatePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DebateResponse | null>(null);
+  const [streaming, setStreaming] = useState(false);
+  const [streamMeta, setStreamMeta] = useState<DebateStreamMeta | null>(null);
+  const [streamTurns, setStreamTurns] = useState<DebateTurn[]>([]);
   const [showEvalCta, setShowEvalCta] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const ctaDelayRef = useRef<number>();
+  const streamAbortRef = useRef<AbortController | null>(null);
+  const [sessionKey, setSessionKey] = useState(0);
+
+  const scheduleEvalCtaReveal = useCallback(() => {
+    if (ctaDelayRef.current != null) {
+      window.clearTimeout(ctaDelayRef.current);
+    }
+    ctaDelayRef.current = window.setTimeout(() => {
+      setShowEvalCta(true);
+      ctaDelayRef.current = undefined;
+    }, 680);
+  }, []);
 
   useEffect(() => {
     setShowEvalCta(false);
@@ -27,22 +42,48 @@ export function DebatePage() {
     }
   }, [result]);
 
-  const onSubmit = useCallback(async (v: DebateFormValues) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await runDebate({
-        topic: v.topic.trim(),
-        rounds: v.rounds,
-        style: v.style,
-      });
-      setResult(data);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Request failed");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const onSubmit = useCallback(
+    async (v: DebateFormValues) => {
+      streamAbortRef.current?.abort();
+      const ac = new AbortController();
+      streamAbortRef.current = ac;
+      setSessionKey((k) => k + 1);
+      setLoading(true);
+      setStreaming(true);
+      setError(null);
+      setStreamMeta(null);
+      setStreamTurns([]);
+      setResult(null);
+      try {
+        const data = await runDebateStream(
+          {
+            topic: v.topic.trim(),
+            rounds: v.rounds,
+            style: v.style,
+          },
+          {
+            signal: ac.signal,
+            onMeta: (m) => setStreamMeta(m),
+            onTurn: (t) => setStreamTurns((prev) => [...prev, t]),
+          },
+        );
+        setResult(data);
+        setStreamMeta(null);
+        setStreamTurns([]);
+        scheduleEvalCtaReveal();
+      } catch (e) {
+        const aborted = e instanceof Error && e.name === "AbortError";
+        if (!aborted) {
+          setError(e instanceof Error ? e.message : "Request failed");
+        }
+      } finally {
+        setStreaming(false);
+        setLoading(false);
+        streamAbortRef.current = null;
+      }
+    },
+    [scheduleEvalCtaReveal],
+  );
 
   const exportJson = () => {
     if (!result) {
@@ -57,28 +98,21 @@ export function DebatePage() {
     URL.revokeObjectURL(url);
   };
 
-  const handleDebateComplete = useCallback(() => {
-    if (ctaDelayRef.current != null) {
-      window.clearTimeout(ctaDelayRef.current);
-    }
-    ctaDelayRef.current = window.setTimeout(() => {
-      setShowEvalCta(true);
-      ctaDelayRef.current = undefined;
-    }, 680);
-  }, []);
-
   useEffect(() => {
     return () => {
+      streamAbortRef.current?.abort();
       if (ctaDelayRef.current != null) {
         window.clearTimeout(ctaDelayRef.current);
       }
     };
   }, []);
 
-  const models = result?.models ?? DEFAULT_MODELS;
-  const timelineKey = result
-    ? `${result.topic}-${result.rounds}-${result.exchangeCount}-${result.turns.length}`
-    : "idle";
+  const models = streamMeta?.models ?? result?.models ?? DEFAULT_MODELS;
+  const liveTurns = streaming ? streamTurns : (result?.turns ?? []);
+  const awaitingNextTurn =
+    streaming && streamMeta !== null && streamTurns.length < streamMeta.exchangeCount;
+  const awaitingJudge =
+    streaming && streamMeta !== null && streamTurns.length >= streamMeta.exchangeCount;
 
   return (
     <div className="relative min-h-screen pb-20">
@@ -129,33 +163,41 @@ export function DebatePage() {
             </span>
           </div>
 
-          {result ? (
+          {result || streaming ? (
             <>
               <TurnTimeline
-                key={timelineKey}
-                turns={result.turns}
-                models={result.models}
-                thinkingMs={720}
-                staggerMs={480}
-                onDebateComplete={handleDebateComplete}
+                key={sessionKey}
+                turns={liveTurns}
+                models={models}
+                thinkingMs={0}
+                staggerMs={0}
+                notifyOnComplete={false}
+                awaitingMore={awaitingNextTurn}
               />
-              <div
-                className={`mt-8 flex flex-col items-center gap-3 transition-all duration-500 ease-out ${
-                  showEvalCta ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
-                }`}
-              >
-                <button
-                  type="button"
-                  disabled={!showEvalCta}
-                  onClick={() => setModalOpen(true)}
-                  className="border border-arb-accent/70 bg-arb-accent/10 px-6 py-2.5 font-mono text-xs font-medium uppercase tracking-[0.2em] text-arb-accent transition enabled:hover:-translate-y-px enabled:hover:bg-arb-accent/20 disabled:cursor-default disabled:opacity-0"
-                >
-                  Reveal verdict
-                </button>
-                <p className="text-center font-mono text-[10px] uppercase tracking-wider text-arb-muted">
-                  Final rubric · heatmap · analysis
+              {awaitingJudge ? (
+                <p className="mt-4 border border-dashed border-arb-border bg-arb-surface/40 px-4 py-3 text-center font-mono text-[10px] uppercase tracking-wider text-arb-muted">
+                  Judge is reviewing the full transcript…
                 </p>
-              </div>
+              ) : null}
+              {result ? (
+                <div
+                  className={`mt-8 flex flex-col items-center gap-3 transition-all duration-500 ease-out ${
+                    showEvalCta ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
+                  }`}
+                >
+                  <button
+                    type="button"
+                    disabled={!showEvalCta}
+                    onClick={() => setModalOpen(true)}
+                    className="border border-arb-accent/70 bg-arb-accent/10 px-6 py-2.5 font-mono text-xs font-medium uppercase tracking-[0.2em] text-arb-accent transition enabled:hover:-translate-y-px enabled:hover:bg-arb-accent/20 disabled:cursor-default disabled:opacity-0"
+                  >
+                    Reveal verdict
+                  </button>
+                  <p className="text-center font-mono text-[10px] uppercase tracking-wider text-arb-muted">
+                    Final rubric · heatmap · analysis
+                  </p>
+                </div>
+              ) : null}
             </>
           ) : (
             <div className="border border-dashed border-arb-border bg-arb-surface/50 px-6 py-24 text-center">

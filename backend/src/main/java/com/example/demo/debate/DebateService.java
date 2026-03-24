@@ -16,6 +16,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Runs debates via Gemini ({@link DebaterService}) and judges with {@link com.tiramisu.judge.JudgeService}.
@@ -45,7 +47,7 @@ public class DebateService {
     public synchronized DebateResult runDebate(String topicRaw, int requestedExchanges) {
         String topic = normalizeTopic(topicRaw);
         int n = clampExchanges(requestedExchanges);
-        return runDebateInternal(topic, n, "balanced");
+        return runDebateInternal(topic, n, "balanced", n / 2, null, null);
     }
 
     /**
@@ -66,7 +68,84 @@ public class DebateService {
         if (exchanges > MAX_EXCHANGES) {
             exchanges = MAX_EXCHANGES;
         }
-        return runDebateInternal(topic, exchanges, style);
+        return runDebateInternal(topic, exchanges, style, rounds, null, null);
+    }
+
+    /**
+     * Same as {@link #runDebateWithRounds} but invokes {@code onMeta} once before any LLM turn, then
+     * {@code onTurn} after each pro/against message (index matches final transcript order).
+     */
+    public synchronized DebateResult runDebateWithRoundsStreaming(
+            String topicRaw,
+            int rounds,
+            String styleRaw,
+            Consumer<StreamingMeta> onMeta,
+            BiConsumer<Integer, DebateExchange> onTurn) {
+        String topic = normalizeTopic(topicRaw);
+        String style = normalizeStyle(styleRaw);
+        int pairs = rounds < 1 ? 1 : rounds;
+        int maxPairs = MAX_EXCHANGES / 2;
+        if (pairs > maxPairs) {
+            pairs = maxPairs;
+        }
+        int exchanges = pairs * 2;
+        if (exchanges < MIN_EXCHANGES) {
+            exchanges = MIN_EXCHANGES;
+        }
+        if (exchanges > MAX_EXCHANGES) {
+            exchanges = MAX_EXCHANGES;
+        }
+        return runDebateInternal(topic, exchanges, style, rounds, onMeta, onTurn);
+    }
+
+    /** Metadata emitted once at the start of a streaming run. */
+    public static final class StreamingMeta {
+
+        private final String topic;
+        private final String style;
+        private final int requestedRounds;
+        private final int exchangeCount;
+        private final String modelA;
+        private final String modelB;
+
+        public StreamingMeta(
+                String topic,
+                String style,
+                int requestedRounds,
+                int exchangeCount,
+                String modelA,
+                String modelB) {
+            this.topic = topic;
+            this.style = style;
+            this.requestedRounds = requestedRounds;
+            this.exchangeCount = exchangeCount;
+            this.modelA = modelA;
+            this.modelB = modelB;
+        }
+
+        public String getTopic() {
+            return topic;
+        }
+
+        public String getStyle() {
+            return style;
+        }
+
+        public int getRequestedRounds() {
+            return requestedRounds;
+        }
+
+        public int getExchangeCount() {
+            return exchangeCount;
+        }
+
+        public String getModelA() {
+            return modelA;
+        }
+
+        public String getModelB() {
+            return modelB;
+        }
     }
 
     private static String normalizeTopic(String topicRaw) {
@@ -95,11 +174,20 @@ public class DebateService {
         return n;
     }
 
-    @SuppressWarnings("unused")
-    private DebateResult runDebateInternal(String topic, int n, String style) {
+    private DebateResult runDebateInternal(
+            String topic,
+            int n,
+            String style,
+            int requestedRounds,
+            Consumer<StreamingMeta> onMeta,
+            BiConsumer<Integer, DebateExchange> onTurn) {
         int pairs = n / 2;
         List<DebateTurn> transcript = new ArrayList<DebateTurn>();
         List<DebateExchange> exchanges = new ArrayList<DebateExchange>();
+
+        if (onMeta != null) {
+            onMeta.accept(new StreamingMeta(topic, style, requestedRounds, n, DEFAULT_MODEL_A, DEFAULT_MODEL_B));
+        }
 
         debaterService.beginDebateSession(pairs);
         try {
@@ -108,11 +196,13 @@ public class DebateService {
                 String proText = ensureTurnText(proRaw);
                 transcript.add(new DebateTurn(round, "pro", DEFAULT_MODEL_A, proText));
                 exchanges.add(new DebateExchange("A", DEFAULT_MODEL_A, "Pro", 0.9, proText));
+                notifyTurn(onTurn, exchanges);
 
                 String againstRaw = debaterService.generateTurn(topic, "against", round, transcript);
                 String againstText = ensureTurnText(againstRaw);
                 transcript.add(new DebateTurn(round, "against", DEFAULT_MODEL_B, againstText));
                 exchanges.add(new DebateExchange("B", DEFAULT_MODEL_B, "Against", 0.4, againstText));
+                notifyTurn(onTurn, exchanges);
             }
         } finally {
             debaterService.endDebateSession();
@@ -130,6 +220,14 @@ public class DebateService {
                 topic, n, exchanges, verdict,
                 DEFAULT_MODEL_A, DEFAULT_MODEL_B, 0.9, 0.4,
                 breakdown);
+    }
+
+    private static void notifyTurn(BiConsumer<Integer, DebateExchange> onTurn, List<DebateExchange> exchanges) {
+        if (onTurn == null) {
+            return;
+        }
+        int idx = exchanges.size() - 1;
+        onTurn.accept(idx, exchanges.get(idx));
     }
 
     private static String ensureTurnText(String raw) {

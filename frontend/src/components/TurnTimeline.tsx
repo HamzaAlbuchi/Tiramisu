@@ -8,6 +8,10 @@ interface Props {
   thinkingMs?: number;
   tone?: "default" | "secondary";
   onDebateComplete?: () => void;
+  /** When false, do not call {@link onDebateComplete} (e.g. SSE adds turns until the parent gets `complete`). */
+  notifyOnComplete?: boolean;
+  /** Shown below the list while more turns are still expected from the server. */
+  awaitingMore?: boolean;
 }
 
 function biasTagsForTurn(t: DebateTurn, j: number) {
@@ -31,6 +35,8 @@ export function TurnTimeline({
   staggerMs = 520,
   thinkingMs = 780,
   onDebateComplete,
+  notifyOnComplete = true,
+  awaitingMore = false,
 }: Props) {
   const [visible, setVisible] = useState(0);
   const [thinking, setThinking] = useState(false);
@@ -75,7 +81,9 @@ export function TurnTimeline({
     if ((staggerMs <= 0 && thinkingMs <= 0) || reduceMotion) {
       setVisible(turns.length);
       setThinking(false);
-      queueMicrotask(notifyDebateComplete);
+      if (notifyOnComplete) {
+        queueMicrotask(notifyDebateComplete);
+      }
       return;
     }
 
@@ -119,7 +127,7 @@ export function TurnTimeline({
       clearAll();
       clearTimersRef.current = () => {};
     };
-  }, [turns, staggerMs, thinkingMs, notifyDebateComplete]);
+  }, [turns, staggerMs, thinkingMs, notifyOnComplete, notifyDebateComplete]);
 
   const liveMode = staggerMs > 0 || thinkingMs > 0;
   const roundsCount = Math.max(1, Math.ceil(turns.length / 2));
@@ -191,6 +199,22 @@ export function TurnTimeline({
           );
         })}
       </div>
+
+      {awaitingMore && !thinking && (
+        <div className="border-t border-arb-border px-4 py-5 sm:px-5" aria-live="polite" aria-busy="true">
+          <div className="flex max-w-md items-center gap-2 font-mono text-xs text-arb-muted">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-arb-accent/50 opacity-40" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-arb-accent/70" />
+            </span>
+            AWAITING NEXT TURN…
+          </div>
+          <div className="mt-4 space-y-2">
+            <div className="h-1 max-w-md bg-arb-border" style={{ width: "52%" }} />
+            <div className="h-1 max-w-lg bg-arb-border/80" style={{ width: "70%" }} />
+          </div>
+        </div>
+      )}
 
       {thinking && visible < turns.length && (
         <div className="border-t border-arb-border px-4 py-5 sm:px-5" aria-live="polite" aria-busy="true">
