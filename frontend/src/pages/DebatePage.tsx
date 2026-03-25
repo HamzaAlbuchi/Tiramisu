@@ -3,6 +3,7 @@ import { ArbiterHeader } from "@/components/ArbiterHeader";
 import { DebateForm, type DebateFormValues } from "@/components/DebateForm";
 import { EvaluationModal } from "@/components/EvaluationModal";
 import { TurnTimeline } from "@/components/TurnTimeline";
+import { exportDebatePdf } from "@/pdf/exportDebatePdf";
 import { runDebateStream, type DebateStreamMeta } from "@/services/api";
 import type { DebateResponse, DebateTurn } from "@/types/debate";
 
@@ -19,27 +20,26 @@ export function DebatePage() {
   const [streamTurns, setStreamTurns] = useState<DebateTurn[]>([]);
   const [showEvalCta, setShowEvalCta] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const ctaDelayRef = useRef<number>();
   const streamAbortRef = useRef<AbortController | null>(null);
   const [sessionKey, setSessionKey] = useState(0);
+  const [pdfExporting, setPdfExporting] = useState(false);
 
-  const scheduleEvalCtaReveal = useCallback(() => {
-    if (ctaDelayRef.current != null) {
-      window.clearTimeout(ctaDelayRef.current);
-    }
-    ctaDelayRef.current = window.setTimeout(() => {
-      setShowEvalCta(true);
-      ctaDelayRef.current = undefined;
-    }, 680);
-  }, []);
-
+  /** When `result` updates, close the modal and (after a short beat) show "Reveal verdict".
+   * Scheduling must live here — not after `setResult` in submit — or the effect would cancel the timeout. */
   useEffect(() => {
-    setShowEvalCta(false);
-    setModalOpen(false);
-    if (ctaDelayRef.current != null) {
-      window.clearTimeout(ctaDelayRef.current);
-      ctaDelayRef.current = undefined;
+    if (!result) {
+      setShowEvalCta(false);
+      setModalOpen(false);
+      return;
     }
+    setModalOpen(false);
+    setShowEvalCta(false);
+    const t = window.setTimeout(() => {
+      setShowEvalCta(true);
+    }, 680);
+    return () => {
+      window.clearTimeout(t);
+    };
   }, [result]);
 
   const onSubmit = useCallback(
@@ -70,7 +70,6 @@ export function DebatePage() {
         setResult(data);
         setStreamMeta(null);
         setStreamTurns([]);
-        scheduleEvalCtaReveal();
       } catch (e) {
         const aborted = e instanceof Error && e.name === "AbortError";
         if (!aborted) {
@@ -82,7 +81,7 @@ export function DebatePage() {
         streamAbortRef.current = null;
       }
     },
-    [scheduleEvalCtaReveal],
+    [],
   );
 
   const exportJson = () => {
@@ -98,12 +97,24 @@ export function DebatePage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportPdf = useCallback(async () => {
+    if (!result) {
+      return;
+    }
+    setPdfExporting(true);
+    setError(null);
+    try {
+      await exportDebatePdf(result);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "PDF export failed");
+    } finally {
+      setPdfExporting(false);
+    }
+  }, [result]);
+
   useEffect(() => {
     return () => {
       streamAbortRef.current?.abort();
-      if (ctaDelayRef.current != null) {
-        window.clearTimeout(ctaDelayRef.current);
-      }
     };
   }, []);
 
@@ -135,13 +146,23 @@ export function DebatePage() {
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-arb-muted">Session parameters</p>
               {result ? (
-                <button
-                  type="button"
-                  onClick={exportJson}
-                  className="border border-arb-border bg-arb-bg px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-arb-muted transition hover:border-arb-muted hover:text-arb-text"
-                >
-                  Export JSON
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleExportPdf}
+                    disabled={pdfExporting}
+                    className="border border-arb-accent/50 bg-arb-accent/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-arb-accent transition enabled:hover:border-arb-accent enabled:hover:bg-arb-accent/20 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {pdfExporting ? "Building PDF…" : "Export PDF (audit)"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={exportJson}
+                    className="border border-arb-border bg-arb-bg px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-arb-muted transition hover:border-arb-muted hover:text-arb-text"
+                  >
+                    Export JSON
+                  </button>
+                </div>
               ) : null}
             </div>
             <DebateForm loading={loading} onSubmit={onSubmit} className="max-w-3xl" />
