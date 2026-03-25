@@ -8,7 +8,6 @@ import com.example.demo.debate.api.DebateTurnDto;
 import com.tiramisu.stats.DebatePersistenceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.MediaType;
@@ -33,13 +32,13 @@ public class DebateApiController {
 
     private final DebateService debateService;
     private final JudgeService judgeService;
-    private final ObjectProvider<DebatePersistenceService> persistenceService;
+    private final DebatePersistenceService persistenceService;
     private final TaskExecutor taskExecutor;
 
     public DebateApiController(
             DebateService debateService,
             JudgeService judgeService,
-            ObjectProvider<DebatePersistenceService> persistenceService,
+            DebatePersistenceService persistenceService,
             @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor) {
         this.debateService = debateService;
         this.judgeService = judgeService;
@@ -56,13 +55,8 @@ public class DebateApiController {
         String style = request.getStyle() != null ? request.getStyle() : "balanced";
         DebateResult result = debateService.runDebateWithRounds(request.getTopic(), rounds, style);
         DebateApiResponse api = judgeService.toApiResponse(result, style, rounds);
-        DebatePersistenceService p = persistenceService.getIfAvailable();
-        if (p != null) {
-            log.debug("Persisting debate result (sync endpoint)");
-            p.persist(api);
-        } else {
-            log.warn("Debate persistence is not available (DebateRecordRepository/JPA not initialized); skipping save.");
-        }
+        log.debug("Persisting debate result (sync endpoint)");
+        persistenceService.persist(api);
         return api;
     }
 
@@ -105,13 +99,8 @@ public class DebateApiController {
 
                 DebateApiResponse full = judgeService.toApiResponse(result, style, rounds);
                 safeSend(emitter, "complete", full);
-                DebatePersistenceService p = persistenceService.getIfAvailable();
-                if (p != null) {
-                    log.debug("Persisting debate result (SSE complete)");
-                    p.persist(full);
-                } else {
-                    log.warn("Debate persistence is not available (DebateRecordRepository/JPA not initialized); skipping save.");
-                }
+                log.debug("Persisting debate result (SSE complete)");
+                persistenceService.persist(full);
                 emitter.complete();
             } catch (Exception e) {
                 log.error("Debate stream failed", e);

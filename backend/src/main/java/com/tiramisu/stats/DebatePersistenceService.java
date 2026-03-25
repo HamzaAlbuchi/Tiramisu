@@ -9,13 +9,12 @@ import com.tiramisu.entity.DebateRecordRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
 @Service
-@ConditionalOnBean(DebateRecordRepository.class)
 public class DebatePersistenceService {
 
     private static final Logger log = LoggerFactory.getLogger(DebatePersistenceService.class);
@@ -23,10 +22,10 @@ public class DebatePersistenceService {
     private static volatile long disabledUntilEpochMs = 0L;
     private static final long COOLDOWN_MS = 60_000L;
 
-    private final DebateRecordRepository repo;
+    private final ObjectProvider<DebateRecordRepository> repo;
     private final ObjectMapper objectMapper;
 
-    public DebatePersistenceService(DebateRecordRepository repo, ObjectMapper objectMapper) {
+    public DebatePersistenceService(ObjectProvider<DebateRecordRepository> repo, ObjectMapper objectMapper) {
         this.repo = repo;
         this.objectMapper = objectMapper;
     }
@@ -38,6 +37,11 @@ public class DebatePersistenceService {
         if (response == null) {
             return;
         }
+        DebateRecordRepository r0 = repo.getIfAvailable();
+        if (r0 == null) {
+            log.warn("DebateRecordRepository is not available; skipping persistence.");
+            return;
+        }
         long now = System.currentTimeMillis();
         if (now < disabledUntilEpochMs) {
             log.debug("Debate persistence in cooldown (untilEpochMs={}); skipping.", disabledUntilEpochMs);
@@ -45,7 +49,7 @@ public class DebatePersistenceService {
         }
         try {
             DebateRecord r = map(response);
-            repo.save(r);
+            r0.save(r);
             log.info("Debate persisted: {}", r.getRecordId());
         } catch (Exception e) {
             // If the DB is down (common during TLS misconfig), avoid blocking every debate request,
