@@ -2,6 +2,7 @@ package com.tiramisu.stats;
 
 import com.tiramisu.entity.DebateRecord;
 import com.tiramisu.entity.DebateRecordRepository;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@ConditionalOnBean(DebateRecordRepository.class)
 public class StatsService {
 
     private final DebateRecordRepository repo;
