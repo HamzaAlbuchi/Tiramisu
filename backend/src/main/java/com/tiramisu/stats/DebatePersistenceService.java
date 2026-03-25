@@ -17,6 +17,7 @@ import java.util.UUID;
 public class DebatePersistenceService {
 
     private static final Logger log = LoggerFactory.getLogger(DebatePersistenceService.class);
+    private static volatile boolean disabled = false;
 
     private final DebateRecordRepository repo;
     private final ObjectMapper objectMapper;
@@ -33,11 +34,16 @@ public class DebatePersistenceService {
         if (response == null) {
             return;
         }
+        if (disabled) {
+            return;
+        }
         try {
             DebateRecord r = map(response);
             repo.save(r);
             log.info("Debate persisted: {}", r.getRecordId());
         } catch (Exception e) {
+            // If the DB is down (common during TLS misconfig), avoid blocking every debate request.
+            disabled = true;
             log.error("Debate persistence failed (non-fatal): {}", e.getMessage());
         }
     }

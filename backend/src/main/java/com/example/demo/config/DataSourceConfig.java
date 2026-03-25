@@ -35,6 +35,10 @@ public class DataSourceConfig {
             return new HikariDataSource();
         }
 
+        // Work around some managed-Postgres TLS 1.3 key-share negotiation failures by preferring TLS 1.2.
+        // This is safe for most platforms and avoids "no suitable key share" errors observed on Railway.
+        setTlsSystemPropsIfMissing();
+
         String raw = databaseUrl.trim();
         if (raw.startsWith("jdbc:")) {
             HikariConfig cfg = new HikariConfig();
@@ -70,11 +74,24 @@ public class DataSourceConfig {
         // Keep pool conservative by default; Railway plans vary.
         cfg.setMaximumPoolSize(5);
         cfg.setMinimumIdle(1);
+        cfg.setConnectionTimeout(5000);
+        cfg.setValidationTimeout(3000);
         // Never fail the whole app on DB init; stats/persistence are best-effort.
         cfg.setInitializationFailTimeout(-1);
 
         log.info("Configured Postgres datasource: {}", redactJdbc(cfg.getJdbcUrl()));
         return new HikariDataSource(cfg);
+    }
+
+    private static void setTlsSystemPropsIfMissing() {
+        // Force TLSv1.2 if user didn't override it.
+        if (System.getProperty("jdk.tls.client.protocols") == null) {
+            System.setProperty("jdk.tls.client.protocols", "TLSv1.2");
+        }
+        // Ensure at least common groups are offered (helps on some JSSE/provider combos).
+        if (System.getProperty("jdk.tls.namedGroups") == null) {
+            System.setProperty("jdk.tls.namedGroups", "x25519,secp256r1,secp384r1,secp521r1");
+        }
     }
 
     private static String ensureSslMode(String jdbcUrl, String sslMode) {
