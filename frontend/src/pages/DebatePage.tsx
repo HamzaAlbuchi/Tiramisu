@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArbiterHeader } from "@/components/ArbiterHeader";
 import { DebateForm, type DebateFormValues } from "@/components/DebateForm";
 import { EvaluationModal } from "@/components/EvaluationModal";
@@ -23,6 +23,8 @@ export function DebatePage() {
   const streamAbortRef = useRef<AbortController | null>(null);
   const [sessionKey, setSessionKey] = useState(0);
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [judgeErrorDismissed, setJudgeErrorDismissed] = useState(false);
+  const lastSubmitRef = useRef<DebateFormValues | null>(null);
 
   /** When `result` updates, close the modal and (after a short beat) show "Reveal verdict".
    * Scheduling must live here — not after `setResult` in submit — or the effect would cancel the timeout. */
@@ -30,10 +32,17 @@ export function DebatePage() {
     if (!result) {
       setShowEvalCta(false);
       setModalOpen(false);
+      setJudgeErrorDismissed(false);
       return;
     }
     setModalOpen(false);
     setShowEvalCta(false);
+    setJudgeErrorDismissed(false);
+    const vt = result.evaluation?.verdictType?.toLowerCase?.() ?? "";
+    const judgeOk = vt.length > 0 && vt !== "error";
+    if (!judgeOk) {
+      return;
+    }
     const t = window.setTimeout(() => {
       setShowEvalCta(true);
     }, 680);
@@ -44,6 +53,7 @@ export function DebatePage() {
 
   const onSubmit = useCallback(
     async (v: DebateFormValues) => {
+      lastSubmitRef.current = v;
       streamAbortRef.current?.abort();
       const ac = new AbortController();
       streamAbortRef.current = ac;
@@ -124,6 +134,12 @@ export function DebatePage() {
     streaming && streamMeta !== null && streamTurns.length < streamMeta.exchangeCount;
   const awaitingJudge =
     streaming && streamMeta !== null && streamTurns.length >= streamMeta.exchangeCount;
+  const awaitingLabel = useMemo(() => {
+    if (!awaitingNextTurn) return undefined;
+    // Streamed turns arrive in chronological order: 0=Pro, 1=Against, 2=Pro...
+    const nextIsPro = streamTurns.length % 2 === 0;
+    return nextIsPro ? models.pro : models.against;
+  }, [awaitingNextTurn, streamTurns.length, models.pro, models.against]);
 
   return (
     <div className="relative min-h-screen pb-20">
@@ -191,6 +207,38 @@ export function DebatePage() {
 
           {result || streaming ? (
             <>
+              {result && !judgeErrorDismissed && (result.evaluation?.verdictType ?? "").toLowerCase() === "error" ? (
+                <div className="mb-4 border border-red-900/40 bg-red-950/25 px-4 py-3 sm:px-5">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-red-200/90">
+                    Judge verdict failed
+                  </p>
+                  <p className="mt-2 font-mono text-xs leading-relaxed text-red-200/80">
+                    The transcript is complete, but the judge could not produce a valid verdict. You can retry the run or skip
+                    the verdict for now.
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const last = lastSubmitRef.current;
+                        if (last) {
+                          onSubmit(last);
+                        }
+                      }}
+                      className="border border-red-900/40 bg-red-950/20 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-red-200/90 transition hover:border-red-200/40"
+                    >
+                      Retry
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setJudgeErrorDismissed(true)}
+                      className="border border-arb-border bg-arb-bg px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-arb-muted transition hover:border-arb-muted hover:text-arb-text"
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               {awaitingJudge ? (
                 <p className="mb-4 border border-dashed border-arb-border bg-arb-surface/40 px-4 py-3 text-center font-mono text-[10px] uppercase tracking-wider text-arb-muted">
                   Judge is reviewing the full transcript…
@@ -223,6 +271,7 @@ export function DebatePage() {
                 staggerMs={0}
                 notifyOnComplete={false}
                 awaitingMore={awaitingNextTurn}
+                awaitingLabel={awaitingLabel}
               />
             </>
           ) : (

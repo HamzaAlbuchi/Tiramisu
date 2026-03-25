@@ -12,6 +12,8 @@ interface Props {
   notifyOnComplete?: boolean;
   /** Shown below the list while more turns are still expected from the server. */
   awaitingMore?: boolean;
+  /** Optional label for the awaited responder (e.g. "Claude Sonnet"). */
+  awaitingLabel?: string;
 }
 
 function biasTagsForTurn(t: DebateTurn, j: number) {
@@ -37,6 +39,7 @@ export function TurnTimeline({
   onDebateComplete,
   notifyOnComplete = true,
   awaitingMore = false,
+  awaitingLabel,
 }: Props) {
   const [visible, setVisible] = useState(0);
   const [thinking, setThinking] = useState(false);
@@ -139,6 +142,22 @@ export function TurnTimeline({
     notifyDebateComplete();
   };
 
+  const Dots = () => (
+    <span className="ml-2 inline-flex items-center gap-1 align-middle">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="h-1.5 w-1.5 rounded-full bg-arb-muted/80"
+          style={{
+            animation: "eval-modal-in 900ms ease-in-out infinite",
+            animationDelay: `${i * 140}ms`,
+            opacity: 0.35,
+          }}
+        />
+      ))}
+    </span>
+  );
+
   return (
     <section className="border border-arb-border bg-arb-surface">
       <div className="flex flex-wrap items-end justify-between gap-3 border-b border-arb-border px-4 py-4 sm:px-5">
@@ -168,7 +187,8 @@ export function TurnTimeline({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-arb-accent/50 opacity-40" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-arb-accent/70" />
             </span>
-            AWAITING NEXT TURN…
+            Waiting for {awaitingLabel ?? "next turn"}
+            <Dots />
           </div>
           <div className="mt-4 space-y-2">
             <div className="h-1 max-w-md bg-arb-border" style={{ width: "52%" }} />

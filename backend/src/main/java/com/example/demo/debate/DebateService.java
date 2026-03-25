@@ -192,13 +192,13 @@ public class DebateService {
         debaterService.beginDebateSession(pairs);
         try {
             for (int round = 1; round <= pairs; round++) {
-                String proRaw = debaterService.generateTurn(topic, "pro", round, transcript);
+                String proRaw = generateTurnWithRetry(topic, "pro", round, transcript);
                 String proText = ensureTurnText(proRaw);
                 transcript.add(new DebateTurn(round, "pro", DEFAULT_MODEL_A, proText));
                 exchanges.add(new DebateExchange("A", DEFAULT_MODEL_A, "Pro", 0.9, proText));
                 notifyTurn(onTurn, exchanges);
 
-                String againstRaw = debaterService.generateTurn(topic, "against", round, transcript);
+                String againstRaw = generateTurnWithRetry(topic, "against", round, transcript);
                 String againstText = ensureTurnText(againstRaw);
                 transcript.add(new DebateTurn(round, "against", DEFAULT_MODEL_B, againstText));
                 exchanges.add(new DebateExchange("B", DEFAULT_MODEL_B, "Against", 0.4, againstText));
@@ -228,6 +228,15 @@ public class DebateService {
         }
         int idx = exchanges.size() - 1;
         onTurn.accept(idx, exchanges.get(idx));
+    }
+
+    private String generateTurnWithRetry(String topic, String role, int round, List<DebateTurn> transcript) {
+        String raw = debaterService.generateTurn(topic, role, round, transcript);
+        if (raw != null && !raw.trim().isEmpty()) {
+            return raw;
+        }
+        // One retry to mitigate transient provider/network failures.
+        return debaterService.generateTurn(topic, role, round, transcript);
     }
 
     private static String ensureTurnText(String raw) {

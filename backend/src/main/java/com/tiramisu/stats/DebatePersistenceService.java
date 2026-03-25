@@ -37,6 +37,14 @@ public class DebatePersistenceService {
         if (response == null) {
             return;
         }
+        if (response.getEvaluation() == null) {
+            log.warn("Debate evaluation is missing; skipping persistence.");
+            return;
+        }
+        if ("error".equalsIgnoreCase(response.getEvaluation().getVerdictType())) {
+            log.warn("Judge verdictType=error; skipping persistence so failed verdicts don't enter stats.");
+            return;
+        }
         DebateRecordRepository r0 = repo.getIfAvailable();
         if (r0 == null) {
             log.warn("DebateRecordRepository is not available; skipping persistence.");
