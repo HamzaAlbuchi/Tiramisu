@@ -3,6 +3,7 @@ package com.tiramisu.stats;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tiramisu.entity.DebateRecord;
 import com.tiramisu.entity.DebateRecordRepository;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,11 +24,11 @@ import java.util.Map;
 @CrossOrigin
 public class StatsController {
 
-    private final StatsService statsService;
-    private final DebateRecordRepository repo;
+    private final ObjectProvider<StatsService> statsService;
+    private final ObjectProvider<DebateRecordRepository> repo;
     private final ObjectMapper objectMapper;
 
-    public StatsController(StatsService statsService, DebateRecordRepository repo, ObjectMapper objectMapper) {
+    public StatsController(ObjectProvider<StatsService> statsService, ObjectProvider<DebateRecordRepository> repo, ObjectMapper objectMapper) {
         this.statsService = statsService;
         this.repo = repo;
         this.objectMapper = objectMapper;
@@ -36,7 +37,11 @@ public class StatsController {
     @GetMapping
     public StatsResponse get() {
         try {
-            return statsService.getStats();
+            StatsService s = statsService.getIfAvailable();
+            if (s == null) {
+                return new StatsResponse();
+            }
+            return s.getStats();
         } catch (Exception e) {
             // DB is optional; if unavailable, return an empty stats payload so the UI can still render.
             return new StatsResponse();
@@ -48,6 +53,11 @@ public class StatsController {
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "20") int size) {
         try {
+            DebateRecordRepository r0 = repo.getIfAvailable();
+            if (r0 == null) {
+                Pageable p0 = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(200, size)));
+                return Page.empty(p0);
+            }
             if (size < 1) {
                 size = 20;
             }
@@ -55,7 +65,7 @@ public class StatsController {
                 size = 200;
             }
             Pageable p = PageRequest.of(Math.max(0, page), size, Sort.by(Sort.Direction.DESC, "createdAt"));
-            Page<DebateRecord> src = repo.findAll(p);
+            Page<DebateRecord> src = r0.findAll(p);
             return src.map(r -> {
                 StatsResponse.RecentDebate rd = new StatsResponse.RecentDebate();
                 rd.setRecordId(r.getRecordId());
@@ -77,7 +87,14 @@ public class StatsController {
 
     @GetMapping("/debates/{recordId}")
     public Map<String, Object> debate(@PathVariable("recordId") String recordId) throws Exception {
-        DebateRecord r = repo.findByRecordId(recordId).orElse(null);
+        DebateRecordRepository r0 = repo.getIfAvailable();
+        if (r0 == null) {
+            Map<String, Object> out = new HashMap<String, Object>();
+            out.put("error", "db_unavailable");
+            out.put("message", "Database is currently unavailable.");
+            return out;
+        }
+        DebateRecord r = r0.findByRecordId(recordId).orElse(null);
         if (r == null) {
             Map<String, Object> out = new HashMap<String, Object>();
             out.put("error", "not_found");

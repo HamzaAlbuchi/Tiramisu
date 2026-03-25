@@ -9,11 +9,13 @@ import com.tiramisu.entity.DebateRecordRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
 @Service
+@ConditionalOnBean(DebateRecordRepository.class)
 public class DebatePersistenceService {
 
     private static final Logger log = LoggerFactory.getLogger(DebatePersistenceService.class);
