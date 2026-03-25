@@ -37,6 +37,19 @@ export interface DebateEvaluation {
   accuracySignalScore: number;
   metrics: DebateMetrics;
   analysis: DebateAnalysis;
+  turnAnalysis?: Array<{
+    round: number;
+    role: string;
+    biasFlags: string[];
+    fallacies: string[];
+    claimStrength: number;
+  }>;
+  biasSummary?: {
+    framing: string;
+    omission: string;
+    authority: string;
+    recency: string;
+  };
 }
 
 export interface DebateModels {

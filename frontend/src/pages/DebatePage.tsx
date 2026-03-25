@@ -140,6 +140,24 @@ export function DebatePage() {
     const nextIsPro = streamTurns.length % 2 === 0;
     return nextIsPro ? models.pro : models.against;
   }, [awaitingNextTurn, streamTurns.length, models.pro, models.against]);
+  const biasFlagsByIndex = useMemo(() => {
+    if (!result?.evaluation?.turnAnalysis || !result.turns) {
+      return undefined;
+    }
+    const byKey = new Map<string, string[]>();
+    for (const ta of result.evaluation.turnAnalysis) {
+      const role = (ta.role ?? "").toLowerCase();
+      const key = `${ta.round}-${role}`;
+      byKey.set(key, Array.isArray(ta.biasFlags) ? ta.biasFlags : []);
+    }
+    const out: Record<number, string[]> = {};
+    for (const t of result.turns) {
+      const round = Math.floor(t.index / 2) + 1;
+      const role = (t.side === "A" ? "pro" : "against");
+      out[t.index] = byKey.get(`${round}-${role}`) ?? [];
+    }
+    return out;
+  }, [result]);
 
   return (
     <div className="relative min-h-screen pb-20">
@@ -272,6 +290,7 @@ export function DebatePage() {
                 notifyOnComplete={false}
                 awaitingMore={awaitingNextTurn}
                 awaitingLabel={awaitingLabel}
+                biasFlagsByIndex={biasFlagsByIndex}
               />
             </>
           ) : (

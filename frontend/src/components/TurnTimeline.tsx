@@ -14,21 +14,28 @@ interface Props {
   awaitingMore?: boolean;
   /** Optional label for the awaited responder (e.g. "Claude Sonnet"). */
   awaitingLabel?: string;
+  /** Optional per-turn bias flags from judge turn analysis, keyed by turn index. */
+  biasFlagsByIndex?: Record<number, string[]>;
 }
 
-function biasTagsForTurn(t: DebateTurn, j: number) {
-  const temp = t.temperature;
-  const emphasis = j % 3;
-  const levels = [
-    temp < 0.45 ? "opacity-70" : temp < 0.8 ? "opacity-100" : "opacity-100 ring-1 ring-white/10",
-    temp < 0.5 ? "opacity-60" : "opacity-90",
-    temp < 0.55 ? "opacity-60" : "opacity-90",
-  ];
-  return [
-    { label: "Framing bias", className: `border-red-900/45 bg-red-950/25 text-red-200/75 ${levels[(emphasis + 0) % 3]}` },
-    { label: "Omission bias", className: `border-amber-900/40 bg-amber-950/20 text-amber-200/75 ${levels[(emphasis + 1) % 3]}` },
-    { label: "Authority bias", className: `border-sky-900/45 bg-sky-950/25 text-sky-200/75 ${levels[(emphasis + 2) % 3]}` },
-  ];
+function tagForBiasFlag(flag: string): { label: string; className: string } | null {
+  const f = (flag ?? "").toUpperCase();
+  if (f === "FRAMING") {
+    return { label: "Framing bias", className: "border-red-900/45 bg-red-950/25 text-red-200/75" };
+  }
+  if (f === "OMISSION") {
+    return { label: "Omission bias", className: "border-amber-900/40 bg-amber-950/20 text-amber-200/75" };
+  }
+  if (f === "AUTHORITY") {
+    return { label: "Authority bias", className: "border-sky-900/45 bg-sky-950/25 text-sky-200/75" };
+  }
+  if (f === "RECENCY") {
+    return { label: "Recency bias", className: "border-fuchsia-900/40 bg-fuchsia-950/20 text-fuchsia-200/70" };
+  }
+  if (f === "FALSE_EQUIVALENCE") {
+    return { label: "False equivalence", className: "border-orange-900/40 bg-orange-950/20 text-orange-200/75" };
+  }
+  return null;
 }
 
 export function TurnTimeline({
@@ -40,6 +47,7 @@ export function TurnTimeline({
   notifyOnComplete = true,
   awaitingMore = false,
   awaitingLabel,
+  biasFlagsByIndex,
 }: Props) {
   const [visible, setVisible] = useState(0);
   const [thinking, setThinking] = useState(false);
@@ -147,11 +155,10 @@ export function TurnTimeline({
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="h-1.5 w-1.5 rounded-full bg-arb-muted/80"
+          className="h-1.5 w-1.5 rounded-full bg-arb-muted/80 animate-eval-pulse"
           style={{
-            animation: "eval-modal-in 900ms ease-in-out infinite",
             animationDelay: `${i * 140}ms`,
-            opacity: 0.35,
+            opacity: 0.4,
           }}
         />
       ))}
@@ -227,7 +234,10 @@ export function TurnTimeline({
           const roundNum = Math.floor(origIdx / 2) + 1;
           const borderColor = isA ? "border-l-arb-pro" : "border-l-arb-against";
           const nameColor = isA ? "text-arb-pro" : "text-arb-against";
-          const tags = biasTagsForTurn(t, origIdx);
+          const tags =
+            (biasFlagsByIndex?.[t.index] ?? [])
+              .map(tagForBiasFlag)
+              .filter((x): x is { label: string; className: string } => x !== null);
 
           return (
             <article
@@ -243,16 +253,18 @@ export function TurnTimeline({
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-serif text-lg italic leading-relaxed text-arb-text/95 sm:text-[1.125rem]">{t.text}</p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {tags.map((tag) => (
-                      <span
-                        key={tag.label}
-                        className={`border px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider ${tag.className}`}
-                      >
-                        {tag.label}
-                      </span>
-                    ))}
-                  </div>
+                  {tags.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <span
+                          key={tag.label}
+                          className={`border px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider ${tag.className}`}
+                        >
+                          {tag.label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </article>
