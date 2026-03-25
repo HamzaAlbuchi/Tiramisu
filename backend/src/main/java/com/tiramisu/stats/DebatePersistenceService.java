@@ -40,6 +40,7 @@ public class DebatePersistenceService {
         }
         long now = System.currentTimeMillis();
         if (now < disabledUntilEpochMs) {
+            log.debug("Debate persistence in cooldown (untilEpochMs={}); skipping.", disabledUntilEpochMs);
             return;
         }
         try {
@@ -50,7 +51,7 @@ public class DebatePersistenceService {
             // If the DB is down (common during TLS misconfig), avoid blocking every debate request,
             // but do not disable permanently (DB may recover).
             disabledUntilEpochMs = now + COOLDOWN_MS;
-            log.error("Debate persistence failed (non-fatal); backing off {}ms: {}", COOLDOWN_MS, e.getMessage());
+            log.error("Debate persistence failed (non-fatal); backing off {}ms", COOLDOWN_MS, e);
         }
     }
 

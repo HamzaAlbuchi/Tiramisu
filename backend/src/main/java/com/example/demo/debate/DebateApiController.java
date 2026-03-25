@@ -58,7 +58,10 @@ public class DebateApiController {
         DebateApiResponse api = judgeService.toApiResponse(result, style, rounds);
         DebatePersistenceService p = persistenceService.getIfAvailable();
         if (p != null) {
+            log.debug("Persisting debate result (sync endpoint)");
             p.persist(api);
+        } else {
+            log.warn("Debate persistence is not available (DebateRecordRepository/JPA not initialized); skipping save.");
         }
         return api;
     }
@@ -104,7 +107,10 @@ public class DebateApiController {
                 safeSend(emitter, "complete", full);
                 DebatePersistenceService p = persistenceService.getIfAvailable();
                 if (p != null) {
+                    log.debug("Persisting debate result (SSE complete)");
                     p.persist(full);
+                } else {
+                    log.warn("Debate persistence is not available (DebateRecordRepository/JPA not initialized); skipping save.");
                 }
                 emitter.complete();
             } catch (Exception e) {
