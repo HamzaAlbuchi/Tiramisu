@@ -5,6 +5,11 @@ declare module "*.woff2?url" {
   export default src;
 }
 
+declare module "*.woff?url" {
+  const src: string;
+  export default src;
+}
+
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
 }

@@ -1,9 +1,11 @@
 import { Font } from "@react-pdf/renderer";
-import bebas from "@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff2?url";
-import dm400 from "@fontsource/dm-mono/files/dm-mono-latin-400-normal.woff2?url";
-import dm500 from "@fontsource/dm-mono/files/dm-mono-latin-500-normal.woff2?url";
-import instItalic from "@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2?url";
-import instNorm from "@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2?url";
+// WOFF2 triggers RangeError: Offset is outside the bounds of the DataView in fontkit (react-pdf).
+// Use WOFF (or TTF) — see https://github.com/diegomura/react-pdf/issues/3042
+import bebas from "@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff?url";
+import dm400 from "@fontsource/dm-mono/files/dm-mono-latin-400-normal.woff?url";
+import dm500 from "@fontsource/dm-mono/files/dm-mono-latin-500-normal.woff?url";
+import instItalic from "@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff?url";
+import instNorm from "@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff?url";
 
 let registered = false;
 
