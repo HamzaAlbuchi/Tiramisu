@@ -265,7 +265,7 @@ export function StatsPage() {
                             className="cursor-pointer border-b border-arb-border hover:bg-arb-bg/30"
                             onClick={() => {
                               // TODO: navigate to /debate/{recordId} when detail page is implemented
-                              console.log(\"clicked debate\", d.recordId);
+                              console.log("clicked debate", d.recordId);
                             }}
                           >
                             <td className="px-4 py-3 font-mono text-xs text-arb-muted tabular-nums">
