@@ -155,10 +155,10 @@ export function TurnTimeline({
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="h-1.5 w-1.5 rounded-full bg-arb-muted/80 animate-eval-pulse"
+          className="inline-block h-1.5 w-1.5 rounded-full bg-arb-muted animate-eval-pulse"
           style={{
             animationDelay: `${i * 140}ms`,
-            opacity: 0.4,
+            opacity: 0.6,
           }}
         />
       ))}

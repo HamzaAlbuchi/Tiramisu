@@ -40,6 +40,15 @@ Stack: **Spring Boot** (Java 8) **backend** and a **React + TypeScript + Vite + 
 
 **Response** includes `topic`, `style`, `rounds`, `exchangeCount`, `models` (`pro`, `against`), chronological **`turns[]`** (the frontend orders them for the “newest first” feed), and **`evaluation`** (`winner`, `winnerLabel`, `confidence`, `verdictType`, risk/signal scores, `metrics`, `analysis`).
 
+### Debate streaming API (real-time transcript)
+
+`POST /api/debate/stream` returns **Server-Sent Events** (`text/event-stream`) so the UI can display turns as they are generated:
+
+- **`event: meta`** — topic/style/rounds + `exchangeCount` + models
+- **`event: turn`** — one transcript turn at a time
+- **`event: complete`** — final payload (same shape as `POST /api/debate`, including evaluation)
+- **`event: error`** — error then connection closes
+
 ---
 
 ## Layout
@@ -72,6 +81,41 @@ npm run dev
 Open the URL Vite prints (default `http://localhost:5173`). Set CORS in `backend/src/main/resources/application.properties` (`app.cors.allowed-origins`) if you use another dev port.
 
 **Production API URL for the SPA:** set `VITE_API_BASE_URL` (see `frontend/.env.example`). Empty in dev uses the Vite proxy.
+
+---
+
+## PostgreSQL persistence + stats
+
+When Postgres is configured, each completed debate is persisted as a `debate_records` row and exposed via a stats API + `/stats` page.
+
+### Database config (Railway)
+
+Railway provides `DATABASE_URL` in this format:
+
+`postgresql://user:password@host:port/dbname`
+
+The backend parses it into a JDBC URL and configures a Hikari pool at runtime.
+
+**API service env vars:**
+
+| Variable | Purpose |
+|---------|---------|
+| `DATABASE_URL` | Provided by Railway Postgres plugin |
+| `DATABASE_SSLMODE` | Optional; defaults to `require` |
+| `JAVA_TOOL_OPTIONS` | Optional TLS overrides if your Postgres endpoint requires it |
+
+**CORS reminder:** `APP_CORS_ORIGINS` must include your frontend origin (e.g. `https://tiramisu-production.up.railway.app`).
+
+### Stats API
+
+- `GET /api/stats` — aggregate stats payload used by the `/stats` page
+- `GET /api/stats/debates?page=0&size=20` — paginated debate list
+- `GET /api/stats/debates/{recordId}` — one debate with full transcript + verdict JSON
+
+### Persistence rules
+
+- Persistence is **best-effort** and must never break the debate response.
+- If the judge returns `verdictType: "error"`, the backend **skips persistence** so failed verdicts don’t pollute stats.
 
 ---
 
@@ -129,6 +173,7 @@ If you see `"/backend": not found` on the web service, it is building from the *
 |--------|-----------|---------|
 | Web | `VITE_API_BASE_URL` | Public origin of the **API** (no trailing slash). With the frontend Dockerfile, applied at container start (`api-config.js`); change → redeploy/restart. |
 | API | `APP_CORS_ORIGINS` | Comma-separated allowed origins; include your **Web** URL. |
+| API | `DATABASE_URL` | Provided by Railway when Postgres is provisioned. |
 
 Deploy **API** first, set `VITE_API_BASE_URL` on Web, then set `APP_CORS_ORIGINS` on the API.
 
