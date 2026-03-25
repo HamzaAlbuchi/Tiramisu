@@ -70,6 +70,8 @@ public class DataSourceConfig {
         // Some managed Postgres endpoints require explicit SSL flag in addition to sslmode.
         cfg.addDataSourceProperty("ssl", "true");
         cfg.addDataSourceProperty("sslmode", (sslMode == null || sslMode.trim().isEmpty()) ? "require" : sslMode.trim());
+        // Newer pgjdbc supports direct SSL negotiation which can help with some managed Postgres endpoints.
+        cfg.addDataSourceProperty("sslNegotiation", "direct");
 
         // Keep pool conservative by default; Railway plans vary.
         cfg.setMaximumPoolSize(5);
