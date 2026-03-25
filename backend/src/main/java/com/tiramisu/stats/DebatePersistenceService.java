@@ -19,7 +19,9 @@ import java.util.UUID;
 public class DebatePersistenceService {
 
     private static final Logger log = LoggerFactory.getLogger(DebatePersistenceService.class);
-    private static volatile boolean disabled = false;
+    /** When DB is unhealthy, back off briefly instead of disabling forever. */
+    private static volatile long disabledUntilEpochMs = 0L;
+    private static final long COOLDOWN_MS = 60_000L;
 
     private final DebateRecordRepository repo;
     private final ObjectMapper objectMapper;
@@ -36,7 +38,8 @@ public class DebatePersistenceService {
         if (response == null) {
             return;
         }
-        if (disabled) {
+        long now = System.currentTimeMillis();
+        if (now < disabledUntilEpochMs) {
             return;
         }
         try {
@@ -44,9 +47,10 @@ public class DebatePersistenceService {
             repo.save(r);
             log.info("Debate persisted: {}", r.getRecordId());
         } catch (Exception e) {
-            // If the DB is down (common during TLS misconfig), avoid blocking every debate request.
-            disabled = true;
-            log.error("Debate persistence failed (non-fatal): {}", e.getMessage());
+            // If the DB is down (common during TLS misconfig), avoid blocking every debate request,
+            // but do not disable permanently (DB may recover).
+            disabledUntilEpochMs = now + COOLDOWN_MS;
+            log.error("Debate persistence failed (non-fatal); backing off {}ms: {}", COOLDOWN_MS, e.getMessage());
         }
     }
 
