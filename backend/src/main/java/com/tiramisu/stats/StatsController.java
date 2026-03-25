@@ -18,11 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.Collections;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/stats")
 @CrossOrigin
 public class StatsController {
+
+    private static final Logger log = LoggerFactory.getLogger(StatsController.class);
 
     private final ObjectProvider<StatsService> statsService;
     private final ObjectProvider<DebateRecordRepository> repo;
@@ -44,6 +48,7 @@ public class StatsController {
             return s.getStats();
         } catch (Exception e) {
             // DB is optional; if unavailable, return an empty stats payload so the UI can still render.
+            log.error("StatsService.getStats failed; returning empty payload", e);
             return new StatsResponse();
         }
     }
@@ -80,6 +85,7 @@ public class StatsController {
                 return rd;
             });
         } catch (Exception e) {
+            log.error("StatsController.debates failed; returning empty page", e);
             Pageable p = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(200, size)));
             return Page.empty(p);
         }
