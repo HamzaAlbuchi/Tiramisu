@@ -21,6 +21,12 @@ public class DataSourceConfig {
     @Value("${DATABASE_URL:}")
     private String databaseUrl;
 
+    /**
+     * Railway Postgres commonly requires SSL. Override via env if needed (e.g. "verify-full" or "disable").
+     */
+    @Value("${DATABASE_SSLMODE:require}")
+    private String sslMode;
+
     @Bean
     public DataSource dataSource() {
         if (databaseUrl == null || databaseUrl.trim().isEmpty()) {
@@ -50,7 +56,7 @@ public class DataSourceConfig {
 
         HikariConfig cfg = new HikariConfig();
         cfg.setDriverClassName("org.postgresql.Driver");
-        cfg.setJdbcUrl(parsed.jdbcUrl);
+        cfg.setJdbcUrl(ensureSslMode(parsed.jdbcUrl, sslMode));
         if (parsed.username != null && !parsed.username.trim().isEmpty()) {
             cfg.setUsername(parsed.username);
         }
@@ -61,9 +67,26 @@ public class DataSourceConfig {
         // Keep pool conservative by default; Railway plans vary.
         cfg.setMaximumPoolSize(5);
         cfg.setMinimumIdle(1);
+        // Never fail the whole app on DB init; stats/persistence are best-effort.
+        cfg.setInitializationFailTimeout(-1);
 
-        log.info("Configured Postgres datasource: {}", redactJdbc(parsed.jdbcUrl));
+        log.info("Configured Postgres datasource: {}", redactJdbc(cfg.getJdbcUrl()));
         return new HikariDataSource(cfg);
+    }
+
+    private static String ensureSslMode(String jdbcUrl, String sslMode) {
+        if (jdbcUrl == null) {
+            return null;
+        }
+        String mode = (sslMode == null || sslMode.trim().isEmpty()) ? "require" : sslMode.trim();
+        String lower = jdbcUrl.toLowerCase();
+        if (lower.contains("sslmode=")) {
+            return jdbcUrl;
+        }
+        if (jdbcUrl.contains("?")) {
+            return jdbcUrl + "&sslmode=" + mode;
+        }
+        return jdbcUrl + "?sslmode=" + mode;
     }
 
     private static ParsedDb parseDatabaseUrl(String raw) throws Exception {
