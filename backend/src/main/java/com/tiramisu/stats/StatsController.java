@@ -3,6 +3,7 @@ package com.tiramisu.stats;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tiramisu.entity.DebateRecord;
 import com.tiramisu.entity.DebateRecordRepository;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
