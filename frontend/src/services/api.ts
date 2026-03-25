@@ -94,6 +94,30 @@ function baseUrl(): string {
 const MISSING_API_URL_MSG =
   "Set VITE_API_BASE_URL on the frontend service (host or full https:// URL is fine). Redeploy after changing it. Set APP_CORS_ORIGINS on the API to this frontend URL.";
 
+function hintForNetworkFailure(url: string): string {
+  // Browsers collapse many network problems into TypeError: Failed to fetch
+  // (CORS blocked, mixed-content, DNS, server down, etc).
+  return [
+    `Network error calling API (request was: ${url}).`,
+    `Likely causes:`,
+    `- VITE_API_BASE_URL points to the wrong host, or the API service is down`,
+    `- CORS blocked: set APP_CORS_ORIGINS on the API to your frontend URL (https://…) and redeploy`,
+    `- Mixed content: frontend is https but API base is http`,
+  ].join("\n");
+}
+
+async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (typeof msg === "string" && msg.toLowerCase().includes("failed to fetch")) {
+      throw new Error(hintForNetworkFailure(url));
+    }
+    throw new Error(`${hintForNetworkFailure(url)}\n\nOriginal error: ${msg}`);
+  }
+}
+
 export async function runDebate(body: DebateRequestBody): Promise<DebateResponse> {
   const apiBase = baseUrl();
   if (import.meta.env.PROD && !apiBase) {
@@ -101,7 +125,7 @@ export async function runDebate(body: DebateRequestBody): Promise<DebateResponse
   }
 
   const url = `${apiBase}/api/debate`;
-  const res = await fetch(url, {
+  const res = await safeFetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -134,7 +158,7 @@ export async function getStats(): Promise<StatsResponse> {
   }
   const path = "/api/stats";
   const url = apiBase ? `${apiBase}${path}` : path;
-  const res = await fetch(url);
+  const res = await safeFetch(url);
   const text = await res.text();
   if (!res.ok) {
     throw new Error(text?.slice(0, 500) || `HTTP ${res.status}`);
@@ -184,7 +208,7 @@ export async function runDebateStream(
 
   const path = "/api/debate/stream";
   const url = apiBase ? `${apiBase}${path}` : path;
-  const res = await fetch(url, {
+  const res = await safeFetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
