@@ -2,6 +2,63 @@ import type { DebateRequestBody, DebateResponse, DebateTurn } from "@/types/deba
 
 export type DebateStreamMeta = Pick<DebateResponse, "topic" | "style" | "rounds" | "exchangeCount" | "models">;
 
+export interface StatsResponse {
+  totalDebates: number;
+  totalDebatesLast30Days: number;
+  leaderboard: Array<{
+    modelLabel: string;
+    totalDebates: number;
+    wins: number;
+    losses: number;
+    draws: number;
+    winRate: number;
+    avgAccuracy: number;
+    avgLogic: number;
+    avgEvidence: number;
+    avgConsistency: number;
+    avgRhetoric: number;
+  }>;
+  headToHead: Array<{
+    proModel: string;
+    againstModel: string;
+    proWins: number;
+    againstWins: number;
+    draws: number;
+  }>;
+  verdictDistribution: {
+    decisive: { count: number; percentage: number };
+    narrow: { count: number; percentage: number };
+    draw: { count: number; percentage: number };
+  };
+  biasStats: {
+    framingHigh: number;
+    framingMedium: number;
+    omissionHigh: number;
+    omissionMedium: number;
+    authorityHigh: number;
+    authorityMedium: number;
+    recencyHigh: number;
+    recencyMedium: number;
+  };
+  topTopics: Array<{
+    topic: string;
+    debateCount: number;
+    avgConfidence: number;
+    mostCommonWinner: string;
+  }>;
+  recentDebates: Array<{
+    recordId: string;
+    topic: string;
+    proModel: string;
+    againstModel: string;
+    winner: string;
+    winnerLabel: string;
+    confidence: number;
+    verdictType: string;
+    createdAt: string;
+  }>;
+}
+
 /** Railway users often paste host only; fetch needs an absolute URL with a scheme or it hits the SPA origin. */
 function normalizeApiOrigin(raw: string): string {
   let s = raw.trim();
@@ -67,6 +124,25 @@ export async function runDebate(body: DebateRequestBody): Promise<DebateResponse
     return JSON.parse(text) as DebateResponse;
   } catch {
     throw new Error("API response was not valid JSON.");
+  }
+}
+
+export async function getStats(): Promise<StatsResponse> {
+  const apiBase = baseUrl();
+  if (import.meta.env.PROD && !apiBase) {
+    throw new Error(MISSING_API_URL_MSG);
+  }
+  const path = "/api/stats";
+  const url = apiBase ? `${apiBase}${path}` : path;
+  const res = await fetch(url);
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(text?.slice(0, 500) || `HTTP ${res.status}`);
+  }
+  try {
+    return JSON.parse(text) as StatsResponse;
+  } catch {
+    throw new Error("Stats response was not valid JSON.");
   }
 }
 

@@ -1,6 +1,9 @@
 const nav = [
   { label: "Debates", href: "#" },
-  { label: "History", href: "#" },
+  // TODO: Separate /history (personal debates)
+  //       from /stats (global leaderboard)
+  //       when user auth is added
+  { label: "History", href: "/stats" },
   { label: "API", href: "#" },
 ] as const;
 

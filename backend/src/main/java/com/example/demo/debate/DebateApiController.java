@@ -5,6 +5,7 @@ import com.example.demo.debate.api.DebateApiResponse;
 import com.example.demo.debate.api.DebateModelsDto;
 import com.example.demo.debate.api.DebateStreamMetaDto;
 import com.example.demo.debate.api.DebateTurnDto;
+import com.tiramisu.stats.DebatePersistenceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -31,14 +32,17 @@ public class DebateApiController {
 
     private final DebateService debateService;
     private final JudgeService judgeService;
+    private final DebatePersistenceService persistenceService;
     private final TaskExecutor taskExecutor;
 
     public DebateApiController(
             DebateService debateService,
             JudgeService judgeService,
+            DebatePersistenceService persistenceService,
             @Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor) {
         this.debateService = debateService;
         this.judgeService = judgeService;
+        this.persistenceService = persistenceService;
         this.taskExecutor = taskExecutor;
     }
 
@@ -50,7 +54,9 @@ public class DebateApiController {
         int rounds = request.getRounds();
         String style = request.getStyle() != null ? request.getStyle() : "balanced";
         DebateResult result = debateService.runDebateWithRounds(request.getTopic(), rounds, style);
-        return judgeService.toApiResponse(result, style, rounds);
+        DebateApiResponse api = judgeService.toApiResponse(result, style, rounds);
+        persistenceService.persist(api);
+        return api;
     }
 
     /**
@@ -92,6 +98,7 @@ public class DebateApiController {
 
                 DebateApiResponse full = judgeService.toApiResponse(result, style, rounds);
                 safeSend(emitter, "complete", full);
+                persistenceService.persist(full);
                 emitter.complete();
             } catch (Exception e) {
                 log.error("Debate stream failed", e);
