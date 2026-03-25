@@ -191,23 +191,14 @@ export function DebatePage() {
 
           {result || streaming ? (
             <>
-              <TurnTimeline
-                key={sessionKey}
-                turns={liveTurns}
-                models={models}
-                thinkingMs={0}
-                staggerMs={0}
-                notifyOnComplete={false}
-                awaitingMore={awaitingNextTurn}
-              />
               {awaitingJudge ? (
-                <p className="mt-4 border border-dashed border-arb-border bg-arb-surface/40 px-4 py-3 text-center font-mono text-[10px] uppercase tracking-wider text-arb-muted">
+                <p className="mb-4 border border-dashed border-arb-border bg-arb-surface/40 px-4 py-3 text-center font-mono text-[10px] uppercase tracking-wider text-arb-muted">
                   Judge is reviewing the full transcript…
                 </p>
               ) : null}
               {result ? (
                 <div
-                  className={`mt-8 flex flex-col items-center gap-3 transition-all duration-500 ease-out ${
+                  className={`mb-4 flex flex-col items-center gap-3 transition-all duration-500 ease-out ${
                     showEvalCta ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
                   }`}
                 >
@@ -224,6 +215,15 @@ export function DebatePage() {
                   </p>
                 </div>
               ) : null}
+              <TurnTimeline
+                key={sessionKey}
+                turns={liveTurns}
+                models={models}
+                thinkingMs={0}
+                staggerMs={0}
+                notifyOnComplete={false}
+                awaitingMore={awaitingNextTurn}
+              />
             </>
           ) : (
             <div className="border border-dashed border-arb-border bg-arb-surface/50 px-6 py-24 text-center">

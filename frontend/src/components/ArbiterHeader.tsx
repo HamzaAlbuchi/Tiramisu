@@ -1,9 +1,9 @@
 const nav = [
-  { label: "Debates", href: "#" },
+  { label: "Debates", href: "/" },
   // TODO: Separate /history (personal debates)
   //       from /stats (global leaderboard)
   //       when user auth is added
-  { label: "History", href: "/stats" },
+  { label: "Stats", href: "/stats" },
   { label: "API", href: "#" },
 ] as const;
 
@@ -11,7 +11,14 @@ export function ArbiterHeader() {
   return (
     <header className="sticky top-0 z-50 h-14 border-b border-arb-border bg-arb-bg/80 backdrop-blur-md">
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
-        <a href="#" className="font-bebas text-2xl tracking-[0.02em]">
+        <a
+          href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            window.__TIRAMISU_NAVIGATE__?.("/");
+          }}
+          className="font-bebas text-2xl tracking-[0.02em]"
+        >
           <span className="text-arb-accent">ARB</span>
           <span className="text-arb-text">ITER</span>
         </a>
@@ -21,6 +28,12 @@ export function ArbiterHeader() {
               <li key={item.label}>
                 <a
                   href={item.href}
+                  onClick={(e) => {
+                    if (item.href.startsWith("/")) {
+                      e.preventDefault();
+                      window.__TIRAMISU_NAVIGATE__?.(item.href);
+                    }
+                  }}
                   className="font-mono text-[11px] uppercase tracking-[0.12em] text-arb-muted transition hover:text-arb-text"
                 >
                   {item.label}

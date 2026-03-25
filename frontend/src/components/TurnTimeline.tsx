@@ -160,6 +160,46 @@ export function TurnTimeline({
         )}
       </div>
 
+      {/* Status blocks should be at the top because the feed is newest-first. */}
+      {awaitingMore && !thinking && (
+        <div className="border-b border-arb-border px-4 py-5 sm:px-5" aria-live="polite" aria-busy="true">
+          <div className="flex max-w-md items-center gap-2 font-mono text-xs text-arb-muted">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-arb-accent/50 opacity-40" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-arb-accent/70" />
+            </span>
+            AWAITING NEXT TURN…
+          </div>
+          <div className="mt-4 space-y-2">
+            <div className="h-1 max-w-md bg-arb-border" style={{ width: "52%" }} />
+            <div className="h-1 max-w-lg bg-arb-border/80" style={{ width: "70%" }} />
+          </div>
+        </div>
+      )}
+
+      {thinking && visible < turns.length && (
+        <div className="border-b border-arb-border px-4 py-5 sm:px-5" aria-live="polite" aria-busy="true">
+          <div className="flex max-w-md items-center gap-2 font-mono text-xs text-arb-muted">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-arb-muted opacity-40" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-arb-muted" />
+            </span>
+            EVALUATING RESPONSE…
+          </div>
+          <div className="mt-4 space-y-2">
+            <div className="h-1 max-w-md bg-arb-border" style={{ width: "58%" }} />
+            <div className="h-1 max-w-lg bg-arb-border/80" style={{ width: "78%" }} />
+            <div className="h-1 max-w-xs bg-arb-border/80" style={{ width: "42%" }} />
+          </div>
+        </div>
+      )}
+
+      {liveMode && visible < turns.length && !thinking && (
+        <p className="border-b border-arb-border py-3 text-center font-mono text-[10px] tabular-nums text-arb-muted">
+          {visible} / {turns.length} revealed
+        </p>
+      )}
+
       <div className="divide-y divide-arb-border">
         {displayed.map((t, j) => {
           const isA = t.side === "A";
@@ -199,45 +239,6 @@ export function TurnTimeline({
           );
         })}
       </div>
-
-      {awaitingMore && !thinking && (
-        <div className="border-t border-arb-border px-4 py-5 sm:px-5" aria-live="polite" aria-busy="true">
-          <div className="flex max-w-md items-center gap-2 font-mono text-xs text-arb-muted">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-arb-accent/50 opacity-40" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-arb-accent/70" />
-            </span>
-            AWAITING NEXT TURN…
-          </div>
-          <div className="mt-4 space-y-2">
-            <div className="h-1 max-w-md bg-arb-border" style={{ width: "52%" }} />
-            <div className="h-1 max-w-lg bg-arb-border/80" style={{ width: "70%" }} />
-          </div>
-        </div>
-      )}
-
-      {thinking && visible < turns.length && (
-        <div className="border-t border-arb-border px-4 py-5 sm:px-5" aria-live="polite" aria-busy="true">
-          <div className="flex max-w-md items-center gap-2 font-mono text-xs text-arb-muted">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-arb-muted opacity-40" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-arb-muted" />
-            </span>
-            EVALUATING RESPONSE…
-          </div>
-          <div className="mt-4 space-y-2">
-            <div className="h-1 max-w-md bg-arb-border" style={{ width: "58%" }} />
-            <div className="h-1 max-w-lg bg-arb-border/80" style={{ width: "78%" }} />
-            <div className="h-1 max-w-xs bg-arb-border/80" style={{ width: "42%" }} />
-          </div>
-        </div>
-      )}
-
-      {liveMode && visible < turns.length && !thinking && (
-        <p className="border-t border-arb-border py-3 text-center font-mono text-[10px] tabular-nums text-arb-muted">
-          {visible} / {turns.length} revealed
-        </p>
-      )}
     </section>
   );
 }
