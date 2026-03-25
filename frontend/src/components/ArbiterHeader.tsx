@@ -8,8 +8,9 @@ export function ArbiterHeader() {
   return (
     <header className="sticky top-0 z-50 h-14 border-b border-arb-border bg-arb-bg/80 backdrop-blur-md">
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
-        <a href="#" className="font-bebas text-2xl tracking-[0.02em] text-arb-accent">
-          ARBITER
+        <a href="#" className="font-bebas text-2xl tracking-[0.02em]">
+          <span className="text-arb-accent">ARB</span>
+          <span className="text-arb-text">ITER</span>
         </a>
         <nav className="flex items-center gap-1 sm:gap-4">
           <ul className="flex items-center gap-3 sm:gap-5">

@@ -131,13 +131,18 @@ export function DebatePage() {
 
       <main>
         <section className={`${SHELL} pt-10 pb-8 sm:pt-14 sm:pb-10`}>
-          <h1 className="max-w-4xl font-bebas text-5xl leading-[0.95] tracking-wide text-arb-text sm:text-6xl md:text-7xl">
-            CONTROLLED <span className="font-serif italic text-arb-muted">adversarial</span>
+          <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-arb-accent">
+            ——— MULTI-MODEL DEBATE EVALUATION
+          </p>
+          <h1 className="mt-3 max-w-4xl font-bebas text-[clamp(3.5rem,8vw,6.5rem)] leading-[0.92] text-arb-text">
+            WHO MAKES
             <br />
-            INTELLIGENCE
+            THE <span className="font-serif italic text-arb-accent">stronger</span>
+            <br />
+            ARGUMENT?
           </h1>
           <p className="mt-4 max-w-xl font-mono text-xs uppercase leading-relaxed tracking-[0.12em] text-arb-muted">
-            Two models · one motion · sealed rubric. Transcript first; verdict on your command.
+            Two AIs. One topic. One winner.
           </p>
         </section>
 
