@@ -2,7 +2,7 @@ package com.tiramisu.stats;
 
 import com.tiramisu.entity.DebateRecord;
 import com.tiramisu.entity.DebateRecordRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -14,28 +14,31 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-@ConditionalOnBean(DebateRecordRepository.class)
 public class StatsService {
 
-    private final DebateRecordRepository repo;
+    private final ObjectProvider<DebateRecordRepository> repo;
 
-    public StatsService(DebateRecordRepository repo) {
+    public StatsService(ObjectProvider<DebateRecordRepository> repo) {
         this.repo = repo;
     }
 
     public StatsResponse getStats() {
+        DebateRecordRepository r0 = repo.getIfAvailable();
+        if (r0 == null) {
+            return new StatsResponse();
+        }
         StatsResponse out = new StatsResponse();
 
-        long total = repo.count();
+        long total = r0.count();
         out.setTotalDebates((int) Math.min(Integer.MAX_VALUE, total));
         out.setTotalDebatesLast30Days((int) Math.min(Integer.MAX_VALUE,
-                repo.countByCreatedAtAfter(LocalDateTime.now().minusDays(30))));
+                r0.countByCreatedAtAfter(LocalDateTime.now().minusDays(30))));
 
         Map<String, Acc> byModel = new HashMap<String, Acc>();
 
         // Wins/losses/draws + head-to-head
         Map<String, StatsResponse.HeadToHead> h2h = new HashMap<String, StatsResponse.HeadToHead>();
-        List<Object[]> rows = repo.countByProModelLabelAndAgainstModelLabel();
+        List<Object[]> rows = r0.countByProModelLabelAndAgainstModelLabel();
         for (Object[] r : rows) {
             String pro = asStr(r[0]);
             String against = asStr(r[1]);
@@ -79,7 +82,7 @@ public class StatsService {
         //       queries at scale
         // TODO: Add date range filter parameter
         // TODO: Add per-user stats when auth added
-        List<DebateRecord> sample = repo.findTop20ByOrderByCreatedAtDesc();
+        List<DebateRecord> sample = r0.findTop20ByOrderByCreatedAtDesc();
         for (DebateRecord r : sample) {
             // pro
             Acc ap = getAcc(byModel, r.getProModelLabel());
@@ -119,7 +122,7 @@ public class StatsService {
 
         // Verdict distribution
         Map<String, Integer> verdictCounts = new HashMap<String, Integer>();
-        for (Object[] r : repo.countByVerdictType()) {
+        for (Object[] r : r0.countByVerdictType()) {
             verdictCounts.put(safe(asStr(r[0])), asInt(r[1]));
         }
         int decisive = getCount(verdictCounts, "decisive");
@@ -134,14 +137,14 @@ public class StatsService {
         out.getVerdictDistribution().getDraw().setPercentage(pct(draw, sum));
 
         // Bias frequency (HIGH/MEDIUM only per spec)
-        applyBias(out.getBiasStats(), "framing", repo.countByBiasFraming());
-        applyBias(out.getBiasStats(), "omission", repo.countByBiasOmission());
-        applyBias(out.getBiasStats(), "authority", repo.countByBiasAuthority());
-        applyBias(out.getBiasStats(), "recency", repo.countByBiasRecency());
+        applyBias(out.getBiasStats(), "framing", r0.countByBiasFraming());
+        applyBias(out.getBiasStats(), "omission", r0.countByBiasOmission());
+        applyBias(out.getBiasStats(), "authority", r0.countByBiasAuthority());
+        applyBias(out.getBiasStats(), "recency", r0.countByBiasRecency());
 
         // Topics
         Map<String, Map<String, Integer>> topicWin = new HashMap<String, Map<String, Integer>>();
-        for (Object[] r : repo.topicWinnerCounts()) {
+        for (Object[] r : r0.topicWinnerCounts()) {
             String topic = safe(asStr(r[0]));
             String winner = safe(asStr(r[1]));
             int cnt = asInt(r[2]);
@@ -154,7 +157,7 @@ public class StatsService {
         }
 
         List<StatsResponse.TopicStat> topics = new ArrayList<StatsResponse.TopicStat>();
-        List<Object[]> topicStats = repo.topicStats();
+        List<Object[]> topicStats = r0.topicStats();
         int limit = Math.min(10, topicStats.size());
         for (int i = 0; i < limit; i++) {
             Object[] r = topicStats.get(i);
@@ -172,7 +175,7 @@ public class StatsService {
 
         // Recent debates
         List<StatsResponse.RecentDebate> recent = new ArrayList<StatsResponse.RecentDebate>();
-        for (DebateRecord r : repo.findTop20ByOrderByCreatedAtDesc()) {
+        for (DebateRecord r : r0.findTop20ByOrderByCreatedAtDesc()) {
             StatsResponse.RecentDebate rd = new StatsResponse.RecentDebate();
             rd.setRecordId(r.getRecordId());
             rd.setTopic(r.getTopic());

@@ -3,7 +3,6 @@ package com.tiramisu.stats;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tiramisu.entity.DebateRecord;
 import com.tiramisu.entity.DebateRecordRepository;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,11 +27,11 @@ public class StatsController {
 
     private static final Logger log = LoggerFactory.getLogger(StatsController.class);
 
-    private final ObjectProvider<StatsService> statsService;
     private final ObjectProvider<DebateRecordRepository> repo;
+    private final StatsService statsService;
     private final ObjectMapper objectMapper;
 
-    public StatsController(ObjectProvider<StatsService> statsService, ObjectProvider<DebateRecordRepository> repo, ObjectMapper objectMapper) {
+    public StatsController(StatsService statsService, ObjectProvider<DebateRecordRepository> repo, ObjectMapper objectMapper) {
         this.statsService = statsService;
         this.repo = repo;
         this.objectMapper = objectMapper;
@@ -41,11 +40,7 @@ public class StatsController {
     @GetMapping
     public StatsResponse get() {
         try {
-            StatsService s = statsService.getIfAvailable();
-            if (s == null) {
-                return new StatsResponse();
-            }
-            return s.getStats();
+            return statsService.getStats();
         } catch (Exception e) {
             // DB is optional; if unavailable, return an empty stats payload so the UI can still render.
             log.error("StatsService.getStats failed; returning empty payload", e);
