@@ -63,6 +63,9 @@ public class DataSourceConfig {
         if (parsed.password != null && !parsed.password.trim().isEmpty()) {
             cfg.setPassword(parsed.password);
         }
+        // Some managed Postgres endpoints require explicit SSL flag in addition to sslmode.
+        cfg.addDataSourceProperty("ssl", "true");
+        cfg.addDataSourceProperty("sslmode", (sslMode == null || sslMode.trim().isEmpty()) ? "require" : sslMode.trim());
 
         // Keep pool conservative by default; Railway plans vary.
         cfg.setMaximumPoolSize(5);

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 
 @RestController
@@ -34,34 +35,44 @@ public class StatsController {
 
     @GetMapping
     public StatsResponse get() {
-        return statsService.getStats();
+        try {
+            return statsService.getStats();
+        } catch (Exception e) {
+            // DB is optional; if unavailable, return an empty stats payload so the UI can still render.
+            return new StatsResponse();
+        }
     }
 
     @GetMapping("/debates")
     public Page<StatsResponse.RecentDebate> debates(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "20") int size) {
-        if (size < 1) {
-            size = 20;
+        try {
+            if (size < 1) {
+                size = 20;
+            }
+            if (size > 200) {
+                size = 200;
+            }
+            Pageable p = PageRequest.of(Math.max(0, page), size, Sort.by(Sort.Direction.DESC, "createdAt"));
+            Page<DebateRecord> src = repo.findAll(p);
+            return src.map(r -> {
+                StatsResponse.RecentDebate rd = new StatsResponse.RecentDebate();
+                rd.setRecordId(r.getRecordId());
+                rd.setTopic(r.getTopic());
+                rd.setProModel(r.getProModelLabel());
+                rd.setAgainstModel(r.getAgainstModelLabel());
+                rd.setWinner(r.getWinner());
+                rd.setWinnerLabel(r.getWinnerLabel());
+                rd.setConfidence(r.getConfidence());
+                rd.setVerdictType(r.getVerdictType());
+                rd.setCreatedAt(r.getCreatedAt());
+                return rd;
+            });
+        } catch (Exception e) {
+            Pageable p = PageRequest.of(Math.max(0, page), Math.max(1, Math.min(200, size)));
+            return Page.empty(p);
         }
-        if (size > 200) {
-            size = 200;
-        }
-        Pageable p = PageRequest.of(Math.max(0, page), size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<DebateRecord> src = repo.findAll(p);
-        return src.map(r -> {
-            StatsResponse.RecentDebate rd = new StatsResponse.RecentDebate();
-            rd.setRecordId(r.getRecordId());
-            rd.setTopic(r.getTopic());
-            rd.setProModel(r.getProModelLabel());
-            rd.setAgainstModel(r.getAgainstModelLabel());
-            rd.setWinner(r.getWinner());
-            rd.setWinnerLabel(r.getWinnerLabel());
-            rd.setConfidence(r.getConfidence());
-            rd.setVerdictType(r.getVerdictType());
-            rd.setCreatedAt(r.getCreatedAt());
-            return rd;
-        });
     }
 
     @GetMapping("/debates/{recordId}")
