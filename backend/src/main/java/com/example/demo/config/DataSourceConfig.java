@@ -90,10 +90,15 @@ public class DataSourceConfig {
         if (System.getProperty("jdk.tls.client.protocols") == null) {
             System.setProperty("jdk.tls.client.protocols", "TLSv1.2");
         }
-        // Ensure at least common groups are offered (helps on some JSSE/provider combos).
+        // Prefer NIST curves for maximum compatibility on older Java 8 runtimes.
+        // Some Java 8 builds do not support X25519 key shares and can trigger "no suitable key share".
         if (System.getProperty("jdk.tls.namedGroups") == null) {
-            System.setProperty("jdk.tls.namedGroups", "x25519,secp256r1,secp384r1,secp521r1");
+            System.setProperty("jdk.tls.namedGroups", "secp256r1,secp384r1,secp521r1");
         }
+        log.info("TLS config: java.version={} jdk.tls.client.protocols={} jdk.tls.namedGroups={}",
+                System.getProperty("java.version"),
+                System.getProperty("jdk.tls.client.protocols"),
+                System.getProperty("jdk.tls.namedGroups"));
     }
 
     private static String ensureSslMode(String jdbcUrl, String sslMode) {
