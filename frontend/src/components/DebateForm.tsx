@@ -1,8 +1,8 @@
 import { useState } from "react";
 
 const STYLES = ["balanced", "formal", "casual", "technical"] as const;
-const MODEL_OPTIONS = ["GPT-4o", "Claude Sonnet", "Gemini Pro"] as const;
-const JUDGE_OPTIONS = ["Internal arbiter", "GPT-4o", "Claude 3 Opus"] as const;
+const MODEL_OPTIONS = ["Gemini (Pro)", "Gemini (Against)", "Gemini"] as const;
+const JUDGE_OPTIONS = ["Internal arbiter", "Gemini"] as const;
 
 export interface DebateFormValues {
   topic: string;

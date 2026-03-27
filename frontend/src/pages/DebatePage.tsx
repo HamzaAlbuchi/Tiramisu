@@ -9,7 +9,7 @@ import type { DebateResponse, DebateTurn } from "@/types/debate";
 
 const SHELL = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
-const DEFAULT_MODELS = { pro: "GPT-4o", against: "Claude Sonnet" } as const;
+const DEFAULT_MODELS = { pro: "Gemini (Pro)", against: "Gemini (Against)" } as const;
 
 export function DebatePage() {
   const [loading, setLoading] = useState(false);

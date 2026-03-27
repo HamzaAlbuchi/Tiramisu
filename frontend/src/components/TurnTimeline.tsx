@@ -12,7 +12,7 @@ interface Props {
   notifyOnComplete?: boolean;
   /** Shown below the list while more turns are still expected from the server. */
   awaitingMore?: boolean;
-  /** Optional label for the awaited responder (e.g. "Claude Sonnet"). */
+  /** Optional label for the awaited responder (e.g. "Gemini (Against)"). */
   awaitingLabel?: string;
   /** Optional per-turn bias flags from judge turn analysis, keyed by turn index. */
   biasFlagsByIndex?: Record<number, string[]>;

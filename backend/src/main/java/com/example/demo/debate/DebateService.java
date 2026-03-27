@@ -25,8 +25,8 @@ import java.util.function.Consumer;
 @Service
 public class DebateService {
 
-    public static final String DEFAULT_MODEL_A = "GPT-4o";
-    public static final String DEFAULT_MODEL_B = "Claude Sonnet";
+    public static final String DEFAULT_MODEL_A = "Gemini (Pro)";
+    public static final String DEFAULT_MODEL_B = "Gemini (Against)";
 
     private static final int MIN_EXCHANGES = 2;
     private static final int MAX_EXCHANGES = 24;

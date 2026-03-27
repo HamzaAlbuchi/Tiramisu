@@ -24,7 +24,7 @@ public class DebateRecord {
     private int rounds;
     private int exchangeCount;
 
-    private String proModelLabel;     // display label e.g. "GPT-4o"
+    private String proModelLabel;     // display label e.g. "Gemini (Pro)"
     private String againstModelLabel;
 
     // Verdict fields
