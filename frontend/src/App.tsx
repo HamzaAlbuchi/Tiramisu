@@ -3,7 +3,7 @@ import { StatsPage } from "@/pages/StatsPage";
 import { useEffect, useState } from "react";
 import { EntryPage } from "@/pages/EntryPage";
 import { LoginPage } from "@/pages/LoginPage";
-import { readAuth, readSpace, setPendingSpace, type Space } from "@/state/spaceAuth";
+import { readAuth, readSpace, setPendingSpace } from "@/state/spaceAuth";
 
 declare global {
   interface Window {
