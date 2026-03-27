@@ -34,18 +34,8 @@ export default function App() {
   const space = typeof window === "undefined" ? null : readSpace();
   const authed = typeof window === "undefined" ? null : readAuth();
 
-  const guardSpace = (s: Space | null) => {
-    if (!s) {
-      window.__TIRAMISU_NAVIGATE__?.("/entry");
-      return false;
-    }
-    if (s === "audit" && !authed) {
-      setPendingSpace("audit");
-      window.__TIRAMISU_NAVIGATE__?.("/login");
-      return false;
-    }
-    return true;
-  };
+  const hasSpace = space === "research" || space === "explore" || space === "audit";
+  const needsAuditLogin = hasSpace && space === "audit" && !authed;
 
   if (path === "/entry") {
     return <EntryPage />;
@@ -54,11 +44,19 @@ export default function App() {
     return <LoginPage />;
   }
 
+  // Initial render: navigation helper is installed in an effect. Render guarded pages directly
+  // instead of returning null (blank screen) while we wait for the effect to run.
+  if (!hasSpace) {
+    return <EntryPage />;
+  }
+  if (needsAuditLogin) {
+    setPendingSpace("audit");
+    return <LoginPage />;
+  }
+
   if (path === "/stats") {
-    if (!guardSpace(space)) return null;
     return <StatsPage />;
   }
 
-  if (!guardSpace(space)) return null;
   return <DebatePage />;
 }
