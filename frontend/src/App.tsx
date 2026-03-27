@@ -2,6 +2,7 @@ import { DebatePage } from "@/pages/DebatePage";
 import { StatsPage } from "@/pages/StatsPage";
 import { useEffect, useState } from "react";
 import { EntryPage } from "@/pages/EntryPage";
+import { HomeLandingPage } from "@/pages/HomeLandingPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { readAuth, readSpace, setPendingSpace } from "@/state/spaceAuth";
 
@@ -37,6 +38,9 @@ export default function App() {
   const hasSpace = space === "research" || space === "explore" || space === "enterprise";
   const needsEnterpriseLogin = hasSpace && space === "enterprise" && !authed;
 
+  if (path === "/") {
+    return <HomeLandingPage />;
+  }
   if (path === "/entry") {
     return <EntryPage />;
   }

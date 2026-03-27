@@ -21,7 +21,7 @@ export function EntryPage() {
       window.__TIRAMISU_NAVIGATE__?.("/login");
       return;
     }
-    window.__TIRAMISU_NAVIGATE__?.("/");
+    window.__TIRAMISU_NAVIGATE__?.("/debate");
   };
 
   return (

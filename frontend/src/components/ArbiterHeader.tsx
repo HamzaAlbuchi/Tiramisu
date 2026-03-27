@@ -1,5 +1,5 @@
 const nav = [
-  { label: "Debates", href: "/" },
+  { label: "Debates", href: "/debate" },
   // TODO: Separate /history (personal debates)
   //       from /stats (global leaderboard)
   //       when user auth is added
@@ -16,6 +16,10 @@ export function ArbiterHeader() {
       window.__TIRAMISU_NAVIGATE__?.("/login");
       return;
     }
+    window.__TIRAMISU_NAVIGATE__?.("/debate");
+  };
+
+  const navToHome = () => {
     window.__TIRAMISU_NAVIGATE__?.("/");
   };
 
@@ -26,7 +30,7 @@ export function ArbiterHeader() {
       window.__TIRAMISU_NAVIGATE__?.("/entry");
       return;
     }
-    window.__TIRAMISU_NAVIGATE__?.("/");
+    window.__TIRAMISU_NAVIGATE__?.("/debate");
   };
 
   return (
@@ -52,7 +56,7 @@ export function ArbiterHeader() {
                   onClick={(e) => {
                     if (item.href.startsWith("/")) {
                       e.preventDefault();
-                      if (item.href === "/") {
+                      if (item.href === "/debate") {
                         navToDebates();
                       } else {
                         window.__TIRAMISU_NAVIGATE__?.(item.href);

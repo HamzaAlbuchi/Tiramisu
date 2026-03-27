@@ -27,7 +27,7 @@ export function LoginPage() {
     }
     writeAuth(e);
     writeSpace(redirectTo);
-    window.__TIRAMISU_NAVIGATE__?.("/");
+    window.__TIRAMISU_NAVIGATE__?.("/debate");
   };
 
   return (
