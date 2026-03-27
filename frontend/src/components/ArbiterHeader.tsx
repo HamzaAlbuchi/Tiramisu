@@ -8,6 +8,17 @@ const nav = [
 ] as const;
 
 export function ArbiterHeader() {
+  const switchSpace = (s: string) => {
+    if (s !== "research" && s !== "explore" && s !== "audit") return;
+    window.localStorage.setItem("arbiter.space", s);
+    if (s === "audit" && !window.localStorage.getItem("arbiter.auth")) {
+      window.localStorage.setItem("arbiter.pendingSpace", "audit");
+      window.__TIRAMISU_NAVIGATE__?.("/login");
+      return;
+    }
+    window.__TIRAMISU_NAVIGATE__?.("/");
+  };
+
   return (
     <header className="sticky top-0 z-50 h-14 border-b border-arb-border bg-arb-bg/80 backdrop-blur-md">
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
@@ -41,6 +52,16 @@ export function ArbiterHeader() {
               </li>
             ))}
           </ul>
+          <select
+            defaultValue={window.localStorage.getItem("arbiter.space") ?? "explore"}
+            onChange={(e) => switchSpace(e.target.value)}
+            className="hidden border border-arb-border bg-arb-bg px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-arb-muted sm:block"
+            aria-label="Switch space"
+          >
+            <option value="research">Research</option>
+            <option value="explore">Explore</option>
+            <option value="audit">Audit</option>
+          </select>
           <span className="ml-2 border border-arb-border bg-arb-surface px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-arb-muted">
             Beta
           </span>

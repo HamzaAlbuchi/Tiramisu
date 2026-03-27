@@ -6,6 +6,7 @@ import { TurnTimeline } from "@/components/TurnTimeline";
 import { exportDebatePdf } from "@/pdf/exportDebatePdf";
 import { runDebateStream, type DebateStreamMeta } from "@/services/api";
 import type { DebateResponse, DebateTurn } from "@/types/debate";
+import { readAuth, readSpace } from "@/state/spaceAuth";
 
 const SHELL = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
@@ -25,6 +26,8 @@ export function DebatePage() {
   const [pdfExporting, setPdfExporting] = useState(false);
   const [judgeErrorDismissed, setJudgeErrorDismissed] = useState(false);
   const lastSubmitRef = useRef<DebateFormValues | null>(null);
+  const space = typeof window === "undefined" ? null : readSpace();
+  const authed = typeof window === "undefined" ? null : readAuth();
 
   /** When `result` updates, close the modal and (after a short beat) show "Reveal verdict".
    * Scheduling must live here — not after `setResult` in submit — or the effect would cancel the timeout. */
@@ -182,6 +185,21 @@ export function DebatePage() {
 
         <section className={`${SHELL} pb-12`}>
           <div className="border border-arb-border bg-arb-surface p-5 sm:p-8">
+            {space === "research" && !authed ? (
+              <div className="mb-6 border border-dashed border-arb-border bg-arb-surface/40 px-4 py-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-arb-muted">Research space</p>
+                <p className="mt-2 font-mono text-xs text-arb-muted">
+                  Sign in to save debates and build an audit trail. You can also continue without signing in.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => window.__TIRAMISU_NAVIGATE__?.("/login")}
+                  className="mt-3 border border-arb-accent/50 bg-arb-accent/10 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-arb-accent transition hover:border-arb-accent hover:bg-arb-accent/20"
+                >
+                  Sign in
+                </button>
+              </div>
+            ) : null}
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-arb-muted">Session parameters</p>
               {result ? (
