@@ -34,8 +34,8 @@ export default function App() {
   const space = typeof window === "undefined" ? null : readSpace();
   const authed = typeof window === "undefined" ? null : readAuth();
 
-  const hasSpace = space === "research" || space === "explore" || space === "audit";
-  const needsAuditLogin = hasSpace && space === "audit" && !authed;
+  const hasSpace = space === "research" || space === "explore" || space === "enterprise";
+  const needsEnterpriseLogin = hasSpace && space === "enterprise" && !authed;
 
   if (path === "/entry") {
     return <EntryPage />;
@@ -49,8 +49,8 @@ export default function App() {
   if (!hasSpace) {
     return <EntryPage />;
   }
-  if (needsAuditLogin) {
-    setPendingSpace("audit");
+  if (needsEnterpriseLogin) {
+    setPendingSpace("enterprise");
     return <LoginPage />;
   }
 

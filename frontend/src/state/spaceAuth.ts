@@ -1,4 +1,4 @@
-export type Space = "research" | "explore" | "audit";
+export type Space = "research" | "explore" | "enterprise";
 
 export interface AuthSession {
   email: string;
@@ -12,7 +12,9 @@ const PENDING_SPACE_KEY = "arbiter.pendingSpace";
 export function readSpace(): Space | null {
   try {
     const raw = window.localStorage.getItem(SPACE_KEY);
-    if (raw === "research" || raw === "explore" || raw === "audit") return raw;
+    // Backwards compat: "audit" is now named "enterprise"
+    if (raw === "audit") return "enterprise";
+    if (raw === "research" || raw === "explore" || raw === "enterprise") return raw;
     return null;
   } catch {
     return null;
@@ -52,7 +54,8 @@ export function popPendingSpace(): Space | null {
   try {
     const raw = window.localStorage.getItem(PENDING_SPACE_KEY);
     window.localStorage.removeItem(PENDING_SPACE_KEY);
-    if (raw === "research" || raw === "explore" || raw === "audit") return raw;
+    if (raw === "audit") return "enterprise";
+    if (raw === "research" || raw === "explore" || raw === "enterprise") return raw;
     return null;
   } catch {
     return null;

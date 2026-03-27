@@ -9,11 +9,21 @@ const nav = [
 
 export function ArbiterHeader() {
   const switchSpace = (s: string) => {
-    if (s !== "research" && s !== "explore" && s !== "audit") return;
+    if (s !== "research" && s !== "explore" && s !== "enterprise") return;
     window.localStorage.setItem("arbiter.space", s);
-    if (s === "audit" && !window.localStorage.getItem("arbiter.auth")) {
-      window.localStorage.setItem("arbiter.pendingSpace", "audit");
+    if (s === "enterprise" && !window.localStorage.getItem("arbiter.auth")) {
+      window.localStorage.setItem("arbiter.pendingSpace", "enterprise");
       window.__TIRAMISU_NAVIGATE__?.("/login");
+      return;
+    }
+    window.__TIRAMISU_NAVIGATE__?.("/");
+  };
+
+  const navToDebates = () => {
+    const space = window.localStorage.getItem("arbiter.space");
+    const authed = !!window.localStorage.getItem("arbiter.auth");
+    if ((space === "enterprise" || space === "audit") && !authed) {
+      window.__TIRAMISU_NAVIGATE__?.("/entry");
       return;
     }
     window.__TIRAMISU_NAVIGATE__?.("/");
@@ -26,7 +36,7 @@ export function ArbiterHeader() {
           href="/"
           onClick={(e) => {
             e.preventDefault();
-            window.__TIRAMISU_NAVIGATE__?.("/");
+            navToDebates();
           }}
           className="font-bebas text-2xl tracking-[0.02em]"
         >
@@ -42,7 +52,11 @@ export function ArbiterHeader() {
                   onClick={(e) => {
                     if (item.href.startsWith("/")) {
                       e.preventDefault();
-                      window.__TIRAMISU_NAVIGATE__?.(item.href);
+                      if (item.href === "/") {
+                        navToDebates();
+                      } else {
+                        window.__TIRAMISU_NAVIGATE__?.(item.href);
+                      }
                     }
                   }}
                   className="font-mono text-[11px] uppercase tracking-[0.12em] text-arb-muted transition hover:text-arb-text"
@@ -58,9 +72,9 @@ export function ArbiterHeader() {
             className="hidden border border-arb-border bg-arb-bg px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-arb-muted sm:block"
             aria-label="Switch space"
           >
-            <option value="research">Research</option>
             <option value="explore">Explore</option>
-            <option value="audit">Audit</option>
+            <option value="research">Research</option>
+            <option value="enterprise">Enterprise</option>
           </select>
           <span className="ml-2 border border-arb-border bg-arb-surface px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-arb-muted">
             Beta

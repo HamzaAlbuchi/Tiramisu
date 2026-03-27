@@ -6,9 +6,9 @@ import { readAuth, setPendingSpace, writeSpace } from "@/state/spaceAuth";
 const SHELL = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
 const spaces: Array<{ key: Space; title: string; desc: string }> = [
-  { key: "research", title: "Research", desc: "Structured debates for analysis and hypothesis testing." },
   { key: "explore", title: "Explore", desc: "Debate anything—fun, opinions, everyday questions." },
-  { key: "audit", title: "Audit", desc: "Prepare and validate decisions before real-world impact." },
+  { key: "research", title: "Research", desc: "Structured debates for analysis and hypothesis testing." },
+  { key: "enterprise", title: "Enterprise", desc: "Prepare and validate decisions before real-world impact." },
 ];
 
 export function EntryPage() {
@@ -16,7 +16,7 @@ export function EntryPage() {
 
   const go = (space: Space) => {
     writeSpace(space);
-    if (space === "audit" && !readAuth()) {
+    if (space === "enterprise" && !readAuth()) {
       setPendingSpace(space);
       window.__TIRAMISU_NAVIGATE__?.("/login");
       return;
@@ -33,7 +33,7 @@ export function EntryPage() {
             Arbiter
           </h1>
           <p className="mt-3 max-w-2xl font-mono text-xs uppercase leading-relaxed tracking-[0.12em] text-arb-muted">
-            AI Debate Engine for Research, Exploration, and Audit
+            AI Debate Engine for Research, Exploration, and Enterprise
           </p>
           <p className="mt-6 max-w-2xl font-serif text-lg italic leading-relaxed text-arb-muted">
             Challenge ideas, validate assumptions, and generate structured verdicts.
@@ -52,7 +52,7 @@ export function EntryPage() {
               >
                 <p className="font-bebas text-3xl tracking-wide text-arb-text">{s.title}</p>
                 <p className="mt-2 font-mono text-xs leading-relaxed text-arb-muted">{s.desc}</p>
-                {s.key === "audit" && !authed ? (
+                {s.key === "enterprise" && !authed ? (
                   <p className="mt-4 inline-flex border border-arb-accent/50 bg-arb-accent/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-arb-accent">
                     Login required
                   </p>
