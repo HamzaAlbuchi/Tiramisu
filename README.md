@@ -21,7 +21,7 @@ Stack: **Spring Boot** (Java 8) **backend** and a **React + TypeScript + Vite + 
    After the last turn, a short pause, then **View evaluation** appears. Opening it shows a **modal** (dimmed backdrop) with **winner**, **confidence**, **summary**, **metrics**, and deeper **judge notes** (strengths, weaknesses, rationale).
 
 5. **Export**  
-   You can still **Export JSON** from the header for the full `POST /api/debate` response.
+   You can export the run as **JSON** or a **formal audit PDF** (verdict summary + transcript).
 
 **Try it locally:** run backend + frontend (below), enter a topic and rounds in the header, submit, and watch the feed before opening the evaluation.
 
@@ -48,6 +48,15 @@ Stack: **Spring Boot** (Java 8) **backend** and a **React + TypeScript + Vite + 
 - **`event: turn`** — one transcript turn at a time
 - **`event: complete`** — final payload (same shape as `POST /api/debate`, including evaluation)
 - **`event: error`** — error then connection closes
+
+### Judge failure behavior
+
+If the judge cannot produce a valid JSON verdict, the backend returns an evaluation with:
+
+- `verdictType: "error"`
+
+The UI will show a top banner offering **Retry** (rerun the last debate) or **Skip** (dismiss the banner).
+Failed verdict runs are **not persisted** into stats.
 
 ---
 
@@ -102,7 +111,7 @@ The backend parses it into a JDBC URL and configures a Hikari pool at runtime.
 |---------|---------|
 | `DATABASE_URL` | Provided by Railway Postgres plugin |
 | `DATABASE_SSLMODE` | Optional; defaults to `require` |
-| `JAVA_TOOL_OPTIONS` | Optional TLS overrides if your Postgres endpoint requires it |
+| `JAVA_TOOL_OPTIONS` | Optional TLS overrides if your Postgres endpoint requires it (e.g. force TLSv1.2 named groups) |
 
 **CORS reminder:** `APP_CORS_ORIGINS` must include your frontend origin (e.g. `https://tiramisu-production.up.railway.app`).
 
@@ -116,6 +125,15 @@ The backend parses it into a JDBC URL and configures a Hikari pool at runtime.
 
 - Persistence is **best-effort** and must never break the debate response.
 - If the judge returns `verdictType: "error"`, the backend **skips persistence** so failed verdicts don’t pollute stats.
+
+### Stats UI
+
+The frontend includes a `/stats` page (navigation label: **Stats**) with:
+
+- Overview cards (total debates, last 30 days, most wins, top topic)
+- Model leaderboard table (sorted by win rate)
+- Verdict distribution + bias frequency panels
+- Recent debates table (click logs recordId for now)
 
 ---
 
