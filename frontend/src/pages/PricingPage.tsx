@@ -221,7 +221,7 @@ function SoonBadge() {
   );
 }
 
-const ENTERPRISE_MAIL = "mailto:enterprise@arbitre.app?subject=arbitre%20Enterprise%20inquiry";
+const ENTERPRISE_MAIL = "mailto:support@arbitre.io?subject=arbitre%20Enterprise%20inquiry";
 
 function PlanCardEnterprise() {
   return (

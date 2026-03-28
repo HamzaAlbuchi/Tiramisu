@@ -667,7 +667,7 @@ function SectionUseCases() {
 }
 
 const ENTERPRISE_MAIL_HOME =
-  "mailto:enterprise@arbitre.app?subject=arbitre%20Enterprise%20inquiry";
+  "mailto:support@arbitre.io?subject=arbitre%20Enterprise%20inquiry";
 
 function SectionPricingCompact() {
   const cards = [
