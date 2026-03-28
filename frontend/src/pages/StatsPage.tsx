@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArbiterHeader } from "@/components/ArbiterHeader";
+import { ArbitreHeader } from "@/components/ArbitreHeader";
 import { getStats, type StatsResponse } from "@/services/api";
 
 const SHELL = "mx-auto w-full max-w-6xl px-4 sm:px-6";
@@ -69,7 +69,7 @@ export function StatsPage() {
 
   return (
     <div className="relative min-h-screen pb-20">
-      <ArbiterHeader />
+      <ArbitreHeader />
 
       <main>
         <section className={`${SHELL} pt-10 pb-8 sm:pt-14 sm:pb-10`}>

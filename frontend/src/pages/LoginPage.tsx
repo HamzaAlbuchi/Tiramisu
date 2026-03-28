@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArbiterHeader } from "@/components/ArbiterHeader";
+import { ArbitreHeader } from "@/components/ArbitreHeader";
 import { popPendingSpace, readSpace, writeAuth, writeSpace } from "@/state/spaceAuth";
 
 const SHELL = "mx-auto w-full max-w-6xl px-4 sm:px-6";
@@ -32,7 +32,7 @@ export function LoginPage() {
 
   return (
     <div className="relative min-h-screen pb-20">
-      <ArbiterHeader />
+      <ArbitreHeader />
       <main>
         <section className={`${SHELL} pt-10 pb-8 sm:pt-14 sm:pb-10`}>
           <h1 className="max-w-4xl font-bebas text-6xl leading-[0.95] tracking-wide text-arb-text sm:text-7xl">

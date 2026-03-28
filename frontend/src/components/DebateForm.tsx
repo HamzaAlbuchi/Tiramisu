@@ -264,7 +264,7 @@ export function DebateForm({ loading, onSubmit, variant = "default", className, 
             Judge
           </label>
           <p id="judge-note" className={`${field} cursor-default text-arb-muted`}>
-            Internal arbiter (Gemini)
+            Internal arbitre (Gemini)
           </p>
         </div>
       </div>

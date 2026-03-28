@@ -1,5 +1,5 @@
 /**
- * Public B2B marketing homepage for Arbiter.
+ * Public B2B marketing homepage for arbitre.
  * Uses existing Tailwind arb-* tokens and fonts only.
  */
 
@@ -192,8 +192,8 @@ function LandingHeader() {
           }}
           className="font-bebas text-[1.6rem] tracking-[0.1em]"
         >
-          <span className="text-arb-accent">ARB</span>
-          <span className="text-arb-text">ITER</span>
+          <span className="text-arb-accent">ar</span>
+          <span className="text-arb-text">bitre</span>
         </a>
         <nav className="flex max-w-[55vw] items-center gap-3 overflow-x-auto md:max-w-none md:gap-6">
           {(
@@ -468,7 +468,7 @@ function SectionHow() {
     {
       n: "01",
       t: "Define the question",
-      d: "Set a resolution, stance, and round count. Arbiter runs a structured Gemini vs. Gemini debate with clear roles.",
+      d: "Set a resolution, stance, and round count. arbitre runs a structured Gemini vs. Gemini debate with clear roles.",
     },
     {
       n: "02",
@@ -628,7 +628,7 @@ function SectionUseCases() {
     <section id="use-cases" className="scroll-mt-32 border-t border-arb-border bg-arb-surface/50 px-6 py-20 sm:px-10">
       <div className="mx-auto max-w-5xl">
         <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-arb-accent">Use cases</p>
-        <h2 className="mt-3 font-bebas text-4xl tracking-wide text-arb-text sm:text-5xl">Who Arbiter is for</h2>
+        <h2 className="mt-3 font-bebas text-4xl tracking-wide text-arb-text sm:text-5xl">Who arbitre is for</h2>
         <ul className="mt-12 grid gap-6 sm:grid-cols-3">
           {cases.map((c) => (
             <li
@@ -666,6 +666,9 @@ function SectionUseCases() {
   );
 }
 
+const ENTERPRISE_MAIL_HOME =
+  "mailto:enterprise@arbitre.app?subject=arbitre%20Enterprise%20inquiry";
+
 function SectionPricingCompact() {
   const cards = [
     {
@@ -674,7 +677,7 @@ function SectionPricingCompact() {
       name: "Explorer",
       nameClass: "text-arb-muted",
       top: MUTED_TOP,
-      tagline: "Try Arbiter with no card.",
+      tagline: "Try arbitre with no card.",
       stat: "1 model",
       statClass: "text-arb-muted",
       bullets: ["3 debates/day", "PDF export", "Judge verdict"],
@@ -683,32 +686,31 @@ function SectionPricingCompact() {
       hash: "" as const,
     },
     {
-      tag: "Researcher",
+      tag: "Paid · Soon",
       tagClass: "border-arb-pro/35 bg-arb-pro/10 text-arb-pro",
-      name: "Analyst",
+      name: "Developer",
       nameClass: "text-arb-pro",
       top: "var(--arb-pro)",
-      tagline: "Scale research & bias review.",
-      stat: "2 models",
+      tagline: "Test your models against the best.",
+      stat: "2+ models",
       statClass: "text-arb-pro",
-      bullets: ["Unlimited", "Full history", "Per-turn bias flags"],
+      bullets: ["BYO endpoints", "Unlimited debates", "Full history & bias flags"],
       cta: "Join waitlist →",
       href: "/plans",
       hash: "#waitlist" as const,
     },
     {
-      tag: "Auditor · Pro",
+      tag: "Enterprise",
       tagClass: "border-arb-accent/40 bg-arb-accent/15 text-arb-accent",
-      name: "Auditor",
+      name: "Enterprise",
       nameClass: "text-arb-accent",
       top: "var(--arb-accent)",
-      tagline: "Compliance-ready evaluation.",
+      tagline: "Compliance-ready evaluation & governance.",
       stat: "3+ models",
       statClass: "text-arb-accent",
-      bullets: ["Private workspace", "Audit trail", "API access"],
-      cta: "Request access →",
-      href: "/plans",
-      hash: "#waitlist" as const,
+      bullets: ["Private workspace", "Audit trail", "API & white-label"],
+      cta: "Contact sales →",
+      mailto: ENTERPRISE_MAIL_HOME,
     },
   ] as const;
 
@@ -741,16 +743,27 @@ function SectionPricingCompact() {
                   <li key={b}>· {b}</li>
                 ))}
               </ul>
-              <a
-                href={`${c.href}${c.hash}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.__TIRAMISU_NAVIGATE__?.(`${c.href}${c.hash}`);
-                }}
-                className="mt-6 inline-block font-mono text-[0.65rem] text-arb-muted transition hover:text-arb-text"
-              >
-                {c.cta}
-              </a>
+              {"mailto" in c && c.mailto ? (
+                <a
+                  href={c.mailto}
+                  className="mt-6 inline-block font-mono text-[0.65rem] text-arb-muted transition hover:text-arb-text"
+                >
+                  {c.cta}
+                </a>
+              ) : (
+                <a
+                  href={`${"href" in c ? c.href : ""}${"hash" in c ? c.hash : ""}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if ("href" in c && "hash" in c) {
+                      window.__TIRAMISU_NAVIGATE__?.(`${c.href}${c.hash}`);
+                    }
+                  }}
+                  className="mt-6 inline-block font-mono text-[0.65rem] text-arb-muted transition hover:text-arb-text"
+                >
+                  {c.cta}
+                </a>
+              )}
             </div>
           ))}
         </div>
@@ -787,7 +800,7 @@ function SectionCta() {
           <span className="block font-serif italic text-arb-accent">proof.</span>
         </h2>
         <p className="mx-auto mb-10 max-w-[380px] font-mono text-[0.72rem] leading-[1.8] text-arb-muted">
-          Your AI sounds confident. Arbiter tells you if it can back that up — structured bias scoring, fallacy detection, and
+          Your AI sounds confident. arbitre tells you if it can back that up — structured bias scoring, fallacy detection, and
           auditable reports.
         </p>
         <div className="flex flex-row flex-wrap items-center justify-center gap-4">
@@ -858,7 +871,7 @@ export function HomeLandingPage() {
         <SectionCta />
       </main>
       <footer className="border-t border-arb-border py-10 text-center font-mono text-[0.58rem] uppercase tracking-[0.14em] text-arb-muted">
-        © {new Date().getFullYear()} Arbiter · Adversarial AI evaluation
+        © {new Date().getFullYear()} arbitre · Adversarial AI evaluation
       </footer>
     </div>
   );

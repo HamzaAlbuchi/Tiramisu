@@ -54,8 +54,8 @@ function ByomSiteHeader() {
           }}
           className="font-bebas text-[1.6rem] tracking-[0.1em]"
         >
-          <span className="text-arb-accent">ARB</span>
-          <span className="text-arb-text">ITER</span>
+          <span className="text-arb-accent">ar</span>
+          <span className="text-arb-text">bitre</span>
         </a>
         <nav className="flex flex-wrap items-center justify-end gap-3 sm:gap-5">
           {(
@@ -305,7 +305,7 @@ const STEP_ITEMS = [
     n: "01",
     icon: "🔌",
     title: "Connect Your Model",
-    desc: "Paste your local endpoint URL. Arbiter sends a test ping to verify it is responding. Works with any OpenAI-compatible API.",
+    desc: "Paste your local endpoint URL. arbitre sends a test ping to verify it is responding. Works with any OpenAI-compatible API.",
     tag: "Ollama · vLLM · LM Studio",
     tagStyle: "purple" as const,
   },
@@ -321,7 +321,7 @@ const STEP_ITEMS = [
     n: "03",
     icon: "💬",
     title: "Watch It Argue",
-    desc: "Arbiter streams turns in real time. Your model receives full debate history and must directly respond to the opponent — genuine adversarial pressure.",
+    desc: "arbitre streams turns in real time. Your model receives full debate history and must directly respond to the opponent — genuine adversarial pressure.",
     tag: "Real interaction · No isolated prompts",
     tagStyle: "green" as const,
   },
@@ -764,9 +764,9 @@ function TerminalSection() {
                 → <span className="text-arb-pro">https://abc123.ngrok.io</span>
               </p>
               <p className="h-3" />
-              <p className="text-arb-muted"># Step 3 — Paste into Arbiter</p>
+              <p className="text-arb-muted"># Step 3 — Paste into arbitre</p>
               <p>
-                <span className="text-[var(--purple)]">$</span> <span className="text-arb-text">arbiter.app/debate</span>
+                <span className="text-[var(--purple)]">$</span> <span className="text-arb-text">arbitre.app/debate</span>
               </p>
               <p className="pl-2 text-arb-muted">→ Custom endpoint field</p>
               <p className="pl-2 text-arb-pro">→ https://abc123.ngrok.io/v1/...</p>
@@ -808,7 +808,7 @@ function PlansIntegrationSection() {
                 Free · Beta
               </span>
               <h3 className="mt-3 font-bebas text-[1.5rem] text-[var(--arb-muted2)]">Explorer</h3>
-              <p className="mt-1 font-serif text-sm italic text-arb-muted">Try Arbiter with hosted models.</p>
+              <p className="mt-1 font-serif text-sm italic text-arb-muted">Try arbitre with hosted models.</p>
               <div className="mt-4 flex gap-2 rounded-[2px] border border-arb-border bg-arb-bg p-3">
                 <span className="text-lg">🔌</span>
                 <div className="min-w-0 flex-1">
@@ -922,8 +922,8 @@ function ByomFooter() {
           }}
           className="font-bebas text-2xl tracking-[0.08em]"
         >
-          <span className="text-arb-accent">ARB</span>
-          <span className="text-arb-text">ITER</span>
+          <span className="text-arb-accent">ar</span>
+          <span className="text-arb-text">bitre</span>
         </a>
         <nav className="flex flex-wrap justify-center gap-6">
           {(

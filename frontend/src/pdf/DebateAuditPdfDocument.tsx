@@ -1,6 +1,6 @@
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { DebateResponse, DebateTurn } from "@/types/debate";
-import { arbPdf } from "@/pdf/arbiterPdfTheme";
+import { arbPdf } from "@/pdf/arbitrePdfTheme";
 import {
   METRIC_ROWS,
   bandFrom01,
@@ -294,7 +294,7 @@ function VerdictSummaryPage({
 
   return (
     <Page size="A4" style={styles.page}>
-      <Text style={styles.productLine}>Tiramisu · Arbiter — formal debate & verdict record</Text>
+      <Text style={styles.productLine}>Tiramisu · arbitre — formal debate & verdict record</Text>
       <Text style={styles.titleStrong}>OFFICIAL VERDICT SUMMARY</Text>
       <Text style={styles.metaRow}>
         Generated (UTC): {generatedAt} · Record ID: {fingerprint} · Exchanges: {result.exchangeCount} · Rounds
@@ -360,7 +360,7 @@ function VerdictSummaryPage({
         style={styles.pageFooter}
         fixed
         render={({ pageNumber, totalPages }) =>
-          `Page ${pageNumber} of ${totalPages} · Arbiter formal record · LLM-generated — verify for legal or regulatory use`
+          `Page ${pageNumber} of ${totalPages} · arbitre formal record · LLM-generated — verify for legal or regulatory use`
         }
       />
     </Page>
@@ -373,7 +373,7 @@ function VerdictAnalysisPage({ result, fingerprint }: { result: DebateResponse; 
 
   return (
     <Page size="A4" style={styles.page}>
-      <Text style={styles.productLine}>Tiramisu · Arbiter — verdict detail · Record ID: {fingerprint}</Text>
+      <Text style={styles.productLine}>Tiramisu · arbitre — verdict detail · Record ID: {fingerprint}</Text>
       <Text style={styles.titleStrong}>JUDGE ANALYSIS & MODEL NOTES</Text>
       <Text style={styles.metaRow} wrap>
         Continuation of the formal record. Motion: {result.topic}
@@ -432,7 +432,7 @@ function VerdictAnalysisPage({ result, fingerprint }: { result: DebateResponse; 
         style={styles.pageFooter}
         fixed
         render={({ pageNumber, totalPages }) =>
-          `Page ${pageNumber} of ${totalPages} · Arbiter formal record · LLM-generated — verify for legal or regulatory use`
+          `Page ${pageNumber} of ${totalPages} · arbitre formal record · LLM-generated — verify for legal or regulatory use`
         }
       />
     </Page>
@@ -451,9 +451,9 @@ export function DebateAuditPdfDocument({
 
   return (
     <Document
-      title={`Arbiter formal record — ${result.topic}`}
+      title={`arbitre formal record — ${result.topic}`}
       subject="LLM debate transcript and assessed verdict"
-      creator="Tiramisu Arbiter"
+      creator="Tiramisu arbitre"
     >
       <VerdictSummaryPage result={result} generatedAt={generatedAt} fingerprint={fingerprint} />
       <VerdictAnalysisPage result={result} fingerprint={fingerprint} />
@@ -470,7 +470,7 @@ export function DebateAuditPdfDocument({
             style={styles.pageFooter}
             fixed
             render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} of ${totalPages} · Arbiter formal record · LLM-generated — verify for legal or regulatory use`
+              `Page ${pageNumber} of ${totalPages} · arbitre formal record · LLM-generated — verify for legal or regulatory use`
             }
           />
         </Page>

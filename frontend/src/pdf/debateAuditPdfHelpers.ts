@@ -86,7 +86,7 @@ export function slugifyTopic(topic: string, maxLen = 48): string {
 
 export function buildPdfFilename(result: DebateResponse): string {
   const day = new Date().toISOString().slice(0, 10);
-  return `arbiter-formal-record-${slugifyTopic(result.topic)}-${day}.pdf`;
+  return `arbitre-formal-record-${slugifyTopic(result.topic)}-${day}.pdf`;
 }
 
 export function recordFingerprint(result: DebateResponse, generatedAt: string): string {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArbiterHeader } from "@/components/ArbiterHeader";
+import { ArbitreHeader } from "@/components/ArbitreHeader";
 import { DebateForm, type DebateFormValues } from "@/components/DebateForm";
 import { EvaluationModal } from "@/components/EvaluationModal";
 import { TurnTimeline } from "@/components/TurnTimeline";
@@ -174,7 +174,7 @@ export function DebatePage() {
 
   return (
     <div className="relative min-h-screen pb-20">
-      <ArbiterHeader />
+      <ArbitreHeader />
 
       <main>
         <section className={`${SHELL} pt-10 pb-8 sm:pt-14 sm:pb-10`}>

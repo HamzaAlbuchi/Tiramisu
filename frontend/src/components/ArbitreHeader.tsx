@@ -8,7 +8,7 @@ const nav = [
   { label: "API", href: "#", byom: false },
 ] as const;
 
-export function ArbiterHeader() {
+export function ArbitreHeader() {
   const path = useTiramisuPath();
 
   const switchSpace = (s: string) => {
@@ -47,8 +47,8 @@ export function ArbiterHeader() {
           }}
           className="font-bebas text-2xl tracking-[0.02em]"
         >
-          <span className="text-arb-accent">ARB</span>
-          <span className="text-arb-text">ITER</span>
+          <span className="text-arb-accent">ar</span>
+          <span className="text-arb-text">bitre</span>
         </a>
         <nav className="flex items-center gap-1 sm:gap-4">
           <ul className="flex items-center gap-3 sm:gap-5">

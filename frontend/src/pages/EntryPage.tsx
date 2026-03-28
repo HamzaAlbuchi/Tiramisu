@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ArbiterHeader } from "@/components/ArbiterHeader";
+import { ArbitreHeader } from "@/components/ArbitreHeader";
 import type { Space } from "@/state/spaceAuth";
 import { readAuth, setPendingSpace, writeSpace } from "@/state/spaceAuth";
 
@@ -26,11 +26,11 @@ export function EntryPage() {
 
   return (
     <div className="relative min-h-screen pb-20">
-      <ArbiterHeader />
+      <ArbitreHeader />
       <main>
         <section className={`${SHELL} pt-10 pb-8 sm:pt-14 sm:pb-10`}>
           <h1 className="max-w-4xl font-bebas text-6xl leading-[0.95] tracking-wide text-arb-text sm:text-7xl">
-            Arbiter
+            arbitre
           </h1>
           <p className="mt-3 max-w-2xl font-mono text-xs uppercase leading-relaxed tracking-[0.12em] text-arb-muted">
             AI Debate Engine for Research, Exploration, and Enterprise

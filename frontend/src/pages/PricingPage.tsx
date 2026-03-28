@@ -33,8 +33,8 @@ function PlansSiteHeader() {
           }}
           className="font-bebas text-[1.6rem] tracking-[0.1em]"
         >
-          <span className="text-arb-accent">ARB</span>
-          <span className="text-arb-text">ITER</span>
+          <span className="text-arb-accent">ar</span>
+          <span className="text-arb-text">bitre</span>
         </a>
         <nav className="flex flex-wrap items-center justify-end gap-3 sm:gap-5">
           {(
@@ -138,7 +138,7 @@ function PlanCardExplorer() {
       <h3 className="font-bebas text-[2rem] tracking-wide" style={{ color: MUTED_TOP }}>
         Explorer
       </h3>
-      <p className="mt-2 font-serif text-base italic text-arb-muted">Try Arbiter. No commitment, no card.</p>
+      <p className="mt-2 font-serif text-base italic text-arb-muted">Try arbitre. No commitment, no card.</p>
       <div className="my-6 space-y-2 border-y py-6" style={{ borderColor: BORDER2 }}>
         <p className="font-mono text-[0.58rem] uppercase tracking-wider text-arb-muted">Pricing</p>
         <p className="font-bebas text-2xl text-arb-text">Always Free</p>
@@ -221,7 +221,7 @@ function SoonBadge() {
   );
 }
 
-const ENTERPRISE_MAIL = "mailto:enterprise@arbiter.app?subject=Arbiter%20Enterprise%20inquiry";
+const ENTERPRISE_MAIL = "mailto:enterprise@arbitre.app?subject=arbitre%20Enterprise%20inquiry";
 
 function PlanCardEnterprise() {
   return (
@@ -507,7 +507,7 @@ function WaitlistSection() {
 
 const FAQ_ITEMS: Array<{ q: string; a: string }> = [
   {
-    q: "Is Arbiter really free right now?",
+    q: "Is arbitre really free right now?",
     a: "Yes — during open beta, all core features are free with no credit card required. The daily limit applies to prevent abuse while infrastructure scales.",
   },
   {
@@ -519,8 +519,8 @@ const FAQ_ITEMS: Array<{ q: string; a: string }> = [
     a: "During beta, debates run on a single model taking both positions. As we add providers, Developer gets 2 distinct models debating each other, and Enterprise gets full model selection across all providers.",
   },
   {
-    q: "Can I use Arbiter for EU AI Act compliance?",
-    a: "Arbiter generates structured bias and accuracy reports aligned with EU AI Act evaluation criteria. These are pre-audit documentation tools — not legally accredited audits.",
+    q: "Can I use arbitre for EU AI Act compliance?",
+    a: "arbitre generates structured bias and accuracy reports aligned with EU AI Act evaluation criteria. These are pre-audit documentation tools — not legally accredited audits.",
   },
   {
     q: "What is a private workspace?",
@@ -568,8 +568,8 @@ function PlansFooter() {
           }}
           className="font-bebas text-2xl tracking-[0.08em]"
         >
-          <span className="text-arb-accent">ARB</span>
-          <span className="text-arb-text">ITER</span>
+          <span className="text-arb-accent">ar</span>
+          <span className="text-arb-text">bitre</span>
         </a>
         <nav className="flex flex-wrap justify-center gap-6">
           {(
@@ -633,7 +633,7 @@ export function PricingPage() {
           <span className="block font-serif italic text-arb-accent">evaluation mode</span>
         </h1>
         <p className="mt-8 max-w-[520px] font-mono text-[0.78rem] leading-[1.8] text-arb-muted">
-          Arbiter is free while in beta. Early access plans are forming now — join the waitlist to lock in your tier before pricing goes live. All
+          arbitre is free while in beta. Early access plans are forming now — join the waitlist to lock in your tier before pricing goes live. All
           plans include core debate evaluation and PDF export.
         </p>
 

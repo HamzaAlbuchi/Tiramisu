@@ -1,4 +1,4 @@
-/** Matches `src/index.css` :root — audit PDF uses the same palette as the Arbiter UI. */
+/** Matches `src/index.css` :root — audit PDF uses the same palette as the arbitre UI. */
 export const arbPdf = {
   bg: "#0a0a0b",
   surface: "#111113",
