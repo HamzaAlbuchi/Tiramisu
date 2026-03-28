@@ -5,6 +5,7 @@ import { EntryPage } from "@/pages/EntryPage";
 import { HomeLandingPage } from "@/pages/HomeLandingPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { PricingPage } from "@/pages/PricingPage";
+import { ByomPage } from "@/pages/ByomPage";
 import { readAuth, readSpace, setPendingSpace } from "@/state/spaceAuth";
 
 declare global {
@@ -17,18 +18,23 @@ export default function App() {
   const [path, setPath] = useState(() => (typeof window === "undefined" ? "/" : window.location.pathname));
 
   useEffect(() => {
-    const onPop = () => setPath(window.location.pathname);
+    const sync = () => {
+      setPath(window.location.pathname);
+      window.dispatchEvent(new Event("tiramisu:nav"));
+    };
+    const onPop = () => sync();
     window.addEventListener("popstate", onPop);
     window.__TIRAMISU_NAVIGATE__ = (to: string) => {
       if (typeof to !== "string" || !to.startsWith("/")) {
         window.location.href = to;
         return;
       }
-      if (window.location.pathname === to) {
+      const current = window.location.pathname + window.location.hash;
+      if (to === current) {
         return;
       }
       window.history.pushState({}, "", to);
-      onPop();
+      sync();
     };
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -44,6 +50,9 @@ export default function App() {
   }
   if (path === "/plans") {
     return <PricingPage />;
+  }
+  if (path === "/byom") {
+    return <ByomPage />;
   }
   if (path === "/entry") {
     return <EntryPage />;

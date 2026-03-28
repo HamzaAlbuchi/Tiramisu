@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useTiramisuPath } from "@/hooks/useTiramisuPath";
 
 const SURFACE2 = "#161618";
 const BORDER2 = "#2a2a2f";
@@ -16,6 +17,8 @@ function scrollToId(id: string) {
 }
 
 function PlansSiteHeader() {
+  const path = useTiramisuPath();
+
   return (
     <header
       className="sticky top-0 z-[100] flex h-14 w-full items-center border-b border-arb-border px-6 sm:px-10"
@@ -39,7 +42,6 @@ function PlansSiteHeader() {
               ["/", "Home"],
               ["/debate", "Debate"],
               ["/stats", "Stats"],
-              ["/plans", "Plans"],
             ] as const
           ).map(([href, label]) => (
             <a
@@ -54,6 +56,30 @@ function PlansSiteHeader() {
               {label}
             </a>
           ))}
+          <a
+            href="/byom"
+            onClick={(e) => {
+              e.preventDefault();
+              window.__TIRAMISU_NAVIGATE__?.("/byom");
+            }}
+            className={
+              path === "/byom"
+                ? "border-b border-[var(--purple)] pb-0.5 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[var(--purple)]"
+                : "border-b border-transparent pb-0.5 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-arb-muted transition hover:border-[var(--purple)] hover:text-[var(--purple)]"
+            }
+          >
+            BYO Model
+          </a>
+          <a
+            href="/plans"
+            onClick={(e) => {
+              e.preventDefault();
+              window.__TIRAMISU_NAVIGATE__?.("/plans");
+            }}
+            className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-arb-muted transition hover:text-arb-text"
+          >
+            Plans
+          </a>
         </nav>
       </div>
     </header>
@@ -529,6 +555,8 @@ function FaqSection() {
 }
 
 function PlansFooter() {
+  const path = useTiramisuPath();
+
   return (
     <footer className="border-t border-arb-border">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-6 py-10 sm:flex-row">
@@ -546,22 +574,29 @@ function PlansFooter() {
         <nav className="flex flex-wrap justify-center gap-6">
           {(
             [
-              ["/", "Home"],
-              ["/debate", "Debate"],
-              ["/stats", "Stats"],
-              ["/plans", "Plans"],
+              { href: "/", label: "Home", byom: false },
+              { href: "/debate", label: "Debate", byom: false },
+              { href: "/stats", label: "Stats", byom: false },
+              { href: "/byom", label: "BYO Model", byom: true },
+              { href: "/plans", label: "Plans", byom: false },
             ] as const
-          ).map(([href, label]) => (
+          ).map((item) => (
             <a
-              key={href}
-              href={href}
+              key={item.href}
+              href={item.href}
               onClick={(e) => {
                 e.preventDefault();
-                window.__TIRAMISU_NAVIGATE__?.(href);
+                window.__TIRAMISU_NAVIGATE__?.(item.href);
               }}
-              className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-arb-muted hover:text-arb-text"
+              className={
+                item.byom
+                  ? path === "/byom"
+                    ? "font-mono text-[0.62rem] uppercase tracking-[0.16em] text-[var(--purple)]"
+                    : "font-mono text-[0.62rem] uppercase tracking-[0.16em] text-arb-muted hover:text-[var(--purple)]"
+                  : "font-mono text-[0.62rem] uppercase tracking-[0.16em] text-arb-muted hover:text-arb-text"
+              }
             >
-              {label}
+              {item.label}
             </a>
           ))}
           <a href="#" className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-arb-muted hover:text-arb-text">

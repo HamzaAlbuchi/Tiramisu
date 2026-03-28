@@ -1,14 +1,16 @@
+import { useTiramisuPath } from "@/hooks/useTiramisuPath";
+
 const nav = [
-  { label: "Debates", href: "/debate" },
-  // TODO: Separate /history (personal debates)
-  //       from /stats (global leaderboard)
-  //       when user auth is added
-  { label: "Stats", href: "/stats" },
-  { label: "Plans", href: "/plans" },
-  { label: "API", href: "#" },
+  { label: "Debates", href: "/debate", byom: false },
+  { label: "Stats", href: "/stats", byom: false },
+  { label: "BYO Model", href: "/byom", byom: true },
+  { label: "Plans", href: "/plans", byom: false },
+  { label: "API", href: "#", byom: false },
 ] as const;
 
 export function ArbiterHeader() {
+  const path = useTiramisuPath();
+
   const switchSpace = (s: string) => {
     if (s !== "research" && s !== "explore" && s !== "enterprise") return;
     window.localStorage.setItem("arbiter.space", s);
@@ -64,7 +66,19 @@ export function ArbiterHeader() {
                       }
                     }
                   }}
-                  className="font-mono text-[11px] uppercase tracking-[0.12em] text-arb-muted transition hover:text-arb-text"
+                  className={
+                    item.byom
+                      ? [
+                          "inline-block border-b pb-0.5 font-mono text-[11px] uppercase tracking-[0.12em] transition",
+                          path === "/byom"
+                            ? "border-[var(--purple)] text-[var(--purple)]"
+                            : "border-transparent text-arb-muted hover:border-[var(--purple)] hover:text-[var(--purple)]",
+                        ].join(" ")
+                      : [
+                          "font-mono text-[11px] uppercase tracking-[0.12em] transition",
+                          path === item.href ? "text-arb-text" : "text-arb-muted hover:text-arb-text",
+                        ].join(" ")
+                  }
                 >
                   {item.label}
                 </a>

@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState, type ReactNode } from "react";
+import { useTiramisuPath } from "@/hooks/useTiramisuPath";
 import { getStats, type StatsResponse } from "@/services/api";
 
 const GREEN = "#4cdc8c";
@@ -175,6 +176,8 @@ function deriveStripCells(stats: StatsResponse | null): StripCell[] {
 }
 
 function LandingHeader() {
+  const path = useTiramisuPath();
+
   return (
     <header
       className="fixed left-0 right-0 top-0 z-[100] flex h-14 w-full items-center border-b border-arb-border px-6 sm:px-10"
@@ -221,6 +224,20 @@ function LandingHeader() {
             className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-arb-muted transition hover:text-arb-text"
           >
             Stats
+          </a>
+          <a
+            href="/byom"
+            onClick={(e) => {
+              e.preventDefault();
+              window.__TIRAMISU_NAVIGATE__?.("/byom");
+            }}
+            className={
+              path === "/byom"
+                ? "shrink-0 border-b border-[var(--purple)] pb-0.5 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-[var(--purple)]"
+                : "shrink-0 border-b border-transparent pb-0.5 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-arb-muted transition hover:border-[var(--purple)] hover:text-[var(--purple)]"
+            }
+          >
+            BYO Model
           </a>
           <a
             href="/plans"

@@ -6,13 +6,18 @@
   color-scheme: dark;
   --arb-bg: #0a0a0b;
   --arb-surface: #111113;
+  --arb-surface2: #161618;
   --arb-border: #1e1e22;
+  --arb-border2: #2a2a2f;
   --arb-accent: #e8ff47;
   --arb-pro: #47c8ff;
   --arb-against: #ff6b7a;
   /* Secondary copy: light enough for small uppercase / ticker text on dark bg */
   --arb-muted: #b4b4bd;
+  --arb-muted2: #6a6a72;
   --arb-text: #f0f0ee;
+  --arb-green: #4cdc8c;
+  --purple: #b47cff;
 }
 
 body {
@@ -128,6 +133,62 @@ body::after {
   animation: landing-live-pulse 1.8s ease-in-out infinite;
 }
 
+@keyframes byom-float-card {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.byom-float-card {
+  animation: byom-float-card 7s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+@keyframes byom-purple-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(180, 124, 255, 0.45);
+  }
+  50% {
+    opacity: 0.85;
+    box-shadow: 0 0 0 4px rgba(180, 124, 255, 0);
+  }
+}
+
+.byom-purple-dot {
+  animation: byom-purple-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes byom-cursor-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.byom-terminal-cursor {
+  animation: byom-cursor-blink 1s infinite;
+}
+
+.byom-reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+
+.byom-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -135,5 +196,11 @@ body::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .byom-float-card,
+  .byom-purple-dot,
+  .byom-terminal-cursor {
+    animation: none !important;
   }
 }
