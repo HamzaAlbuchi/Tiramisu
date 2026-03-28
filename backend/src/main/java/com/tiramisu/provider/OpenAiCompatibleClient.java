@@ -77,11 +77,14 @@ public class OpenAiCompatibleClient {
      */
     public void probe(String endpointUrl, String apiKey, String modelId) {
         String url = resolveChatCompletionsUrl(endpointUrl);
-        String model = (modelId == null || modelId.isBlank()) ? "gpt-4o-mini" : modelId.trim();
+        String model = (modelId == null || modelId.trim().isEmpty()) ? "gpt-4o-mini" : modelId.trim();
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
         List<Map<String, String>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "user", "content", "Reply with exactly: OK"));
+        Map<String, String> probeUser = new LinkedHashMap<>();
+        probeUser.put("role", "user");
+        probeUser.put("content", "Reply with exactly: OK");
+        messages.add(probeUser);
         body.put("messages", messages);
         body.put("max_tokens", probeMaxTokens);
 
@@ -98,7 +101,7 @@ public class OpenAiCompatibleClient {
             int maxOutputTokens) {
         GeminiClient.validateHistory(history);
         String url = resolveChatCompletionsUrl(endpointUrl);
-        String model = (modelId == null || modelId.isBlank()) ? "gpt-4o-mini" : modelId.trim();
+        String model = (modelId == null || modelId.trim().isEmpty()) ? "gpt-4o-mini" : modelId.trim();
 
         List<Map<String, String>> messages = new ArrayList<>();
         Map<String, String> sys = new LinkedHashMap<>();
@@ -132,7 +135,7 @@ public class OpenAiCompatibleClient {
             String json = objectMapper.writeValueAsString(body);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            if (apiKey != null && !apiKey.isBlank()) {
+            if (apiKey != null && !apiKey.trim().isEmpty()) {
                 headers.setBearerAuth(apiKey.trim());
             }
             HttpEntity<String> entity = new HttpEntity<>(json, headers);
