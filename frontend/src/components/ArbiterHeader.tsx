@@ -4,6 +4,7 @@ const nav = [
   //       from /stats (global leaderboard)
   //       when user auth is added
   { label: "Stats", href: "/stats" },
+  { label: "Plans", href: "/plans" },
   { label: "API", href: "#" },
 ] as const;
 

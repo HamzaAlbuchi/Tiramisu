@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { EntryPage } from "@/pages/EntryPage";
 import { HomeLandingPage } from "@/pages/HomeLandingPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { PricingPage } from "@/pages/PricingPage";
 import { readAuth, readSpace, setPendingSpace } from "@/state/spaceAuth";
 
 declare global {
@@ -40,6 +41,9 @@ export default function App() {
 
   if (path === "/") {
     return <HomeLandingPage />;
+  }
+  if (path === "/plans") {
+    return <PricingPage />;
   }
   if (path === "/entry") {
     return <EntryPage />;

@@ -7,6 +7,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { getStats, type StatsResponse } from "@/services/api";
 
 const GREEN = "#4cdc8c";
+const MUTED_TOP = "#6a6a72";
 
 const fade = (delaySec: number) => ({
   animationDelay: `${delaySec}s`,
@@ -220,6 +221,16 @@ function LandingHeader() {
             className="font-mono text-[0.62rem] uppercase tracking-[0.18em] text-arb-muted transition hover:text-arb-text"
           >
             Stats
+          </a>
+          <a
+            href="/plans"
+            onClick={(e) => {
+              e.preventDefault();
+              window.__TIRAMISU_NAVIGATE__?.("/plans");
+            }}
+            className="shrink-0 font-mono text-[0.62rem] uppercase tracking-[0.18em] text-arb-muted transition hover:text-arb-text"
+          >
+            Plans
           </a>
           <button
             type="button"
@@ -638,6 +649,111 @@ function SectionUseCases() {
   );
 }
 
+function SectionPricingCompact() {
+  const cards = [
+    {
+      tag: "Free · Beta",
+      tagClass: "border-arb-border bg-arb-bg text-arb-muted",
+      name: "Explorer",
+      nameClass: "text-arb-muted",
+      top: MUTED_TOP,
+      tagline: "Try Arbiter with no card.",
+      stat: "1 model",
+      statClass: "text-arb-muted",
+      bullets: ["3 debates/day", "PDF export", "Judge verdict"],
+      cta: "Start free →",
+      href: "/debate",
+      hash: "" as const,
+    },
+    {
+      tag: "Researcher",
+      tagClass: "border-arb-pro/35 bg-arb-pro/10 text-arb-pro",
+      name: "Analyst",
+      nameClass: "text-arb-pro",
+      top: "var(--arb-pro)",
+      tagline: "Scale research & bias review.",
+      stat: "2 models",
+      statClass: "text-arb-pro",
+      bullets: ["Unlimited", "Full history", "Per-turn bias flags"],
+      cta: "Join waitlist →",
+      href: "/plans",
+      hash: "#waitlist" as const,
+    },
+    {
+      tag: "Auditor · Pro",
+      tagClass: "border-arb-accent/40 bg-arb-accent/15 text-arb-accent",
+      name: "Auditor",
+      nameClass: "text-arb-accent",
+      top: "var(--arb-accent)",
+      tagline: "Compliance-ready evaluation.",
+      stat: "3+ models",
+      statClass: "text-arb-accent",
+      bullets: ["Private workspace", "Audit trail", "API access"],
+      cta: "Request access →",
+      href: "/plans",
+      hash: "#waitlist" as const,
+    },
+  ] as const;
+
+  return (
+    <section id="plans" className="scroll-mt-28 border-t border-arb-border px-6 py-20 sm:px-10" style={{ padding: "5rem 2.5rem" }}>
+      <div className="mx-auto max-w-[1100px]">
+        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-arb-accent">——— Plans</p>
+        <h2 className="mt-4 font-bebas text-4xl leading-[0.95] tracking-wide text-arb-text sm:text-5xl">
+          START FREE. SCALE WHEN <span className="font-serif italic text-arb-accent">ready.</span>
+        </h2>
+        <p className="mt-6 max-w-xl font-mono text-[0.78rem] leading-[1.8] text-arb-muted">
+          All plans include structured verdicts, bias detection, and PDF export. Pro features are forming — join the waitlist.
+        </p>
+        <div className="mt-12 grid gap-4 md:grid-cols-3">
+          {cards.map((c) => (
+            <div
+              key={c.name}
+              className="border border-arb-border bg-arb-surface p-6 transition-colors hover:bg-[#161618]"
+              style={{ borderTopWidth: 2, borderTopColor: c.top, padding: "1.5rem" }}
+            >
+              <span className={`inline-flex border px-2 py-0.5 font-mono text-[0.52rem] uppercase tracking-wider ${c.tagClass}`}>
+                {c.tag}
+              </span>
+              <h3 className={`mt-4 font-bebas text-[1.5rem] tracking-wide ${c.nameClass}`}>{c.name}</h3>
+              <p className="mt-1 font-mono text-[0.65rem] text-arb-muted">{c.tagline}</p>
+              <p className={`mt-6 font-bebas text-3xl leading-none ${c.statClass}`}>{c.stat}</p>
+              <p className="mt-1 font-mono text-[0.55rem] uppercase tracking-wider text-arb-muted">available in this tier</p>
+              <ul className="mt-4 space-y-1.5 font-mono text-[0.65rem] leading-relaxed text-arb-muted">
+                {c.bullets.map((b) => (
+                  <li key={b}>· {b}</li>
+                ))}
+              </ul>
+              <a
+                href={`${c.href}${c.hash}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.__TIRAMISU_NAVIGATE__?.(`${c.href}${c.hash}`);
+                }}
+                className="mt-6 inline-block font-mono text-[0.65rem] text-arb-muted transition hover:text-arb-text"
+              >
+                {c.cta}
+              </a>
+            </div>
+          ))}
+        </div>
+        <p className="mt-12 text-center">
+          <a
+            href="/plans"
+            onClick={(e) => {
+              e.preventDefault();
+              window.__TIRAMISU_NAVIGATE__?.("/plans");
+            }}
+            className="font-mono text-[0.65rem] text-arb-muted transition hover:text-arb-text"
+          >
+            See full feature comparison →
+          </a>
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function SectionCta() {
   return (
     <section className="relative overflow-hidden border-t border-arb-border text-center" style={{ padding: "7rem 2.5rem" }}>
@@ -721,6 +837,7 @@ export function HomeLandingPage() {
         <SectionHow />
         <SectionFeatures />
         <SectionUseCases />
+        <SectionPricingCompact />
         <SectionCta />
       </main>
       <footer className="border-t border-arb-border py-10 text-center font-mono text-[0.58rem] uppercase tracking-[0.14em] text-arb-muted">
