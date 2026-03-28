@@ -224,19 +224,13 @@ function HeroSection() {
           </span>
         </h1>
         <p
-          className="landing-fade-up mt-4 font-bebas tracking-wide text-arb-muted"
-          style={{ fontSize: "clamp(3rem, 7vw, 6rem)", lineHeight: 0.95, ...fade(0.3) }}
-        >
-          NOT CONFIDENCE. EVIDENCE.
-        </p>
-        <p
           className="landing-fade-up mt-8 max-w-[460px] font-mono text-[0.78rem] leading-[1.8] text-arb-muted"
-          style={fade(0.4)}
+          style={fade(0.3)}
         >
           Adversarial evaluation for AI teams that need more than confidence — they need evidence. Stress-test any model on
           any topic and get a structured verdict with bias scores, fallacy detection, and auditable accuracy ratings.
         </p>
-        <div className="landing-fade-up mt-10 flex flex-wrap items-center gap-4" style={fade(0.5)}>
+        <div className="landing-fade-up mt-10 flex flex-wrap items-center gap-4" style={fade(0.4)}>
           <a
             href="/debate"
             onClick={(e) => {
@@ -268,7 +262,7 @@ function HeroSection() {
 
         <div
           className="landing-fade-up mt-14 grid max-w-3xl grid-cols-2 gap-8 border-t border-arb-border pt-10 sm:grid-cols-4"
-          style={fade(0.6)}
+          style={fade(0.5)}
         >
           {[
             { v: "347", label: "Debates run", c: "var(--arb-accent)" },
