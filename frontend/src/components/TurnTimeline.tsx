@@ -3,7 +3,9 @@ import type { DebateTurn } from "@/types/debate";
 
 interface Props {
   turns: DebateTurn[];
-  models: { pro: string; against: string };
+  models: { pro: string; against: string; custom?: boolean };
+  /** When true, model names use BYO (purple) styling and a CUSTOM badge. */
+  modelsCustom?: boolean;
   staggerMs?: number;
   thinkingMs?: number;
   tone?: "default" | "secondary";
@@ -41,6 +43,7 @@ function tagForBiasFlag(flag: string): { label: string; className: string } | nu
 export function TurnTimeline({
   turns,
   models,
+  modelsCustom = false,
   staggerMs = 520,
   thinkingMs = 780,
   onDebateComplete,
@@ -49,6 +52,7 @@ export function TurnTimeline({
   awaitingLabel,
   biasFlagsByIndex,
 }: Props) {
+  const showCustom = modelsCustom || !!models.custom;
   const [visible, setVisible] = useState(0);
   const [thinking, setThinking] = useState(false);
   const clearTimersRef = useRef<() => void>(() => {});
@@ -171,7 +175,9 @@ export function TurnTimeline({
         <div>
           <h3 className="font-bebas text-2xl tracking-wide text-arb-text">TRANSCRIPT</h3>
           <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-arb-muted">
-            {models.pro} <span className="text-arb-border">·</span> {models.against} · {turns.length} turns ·{" "}
+            <span className={showCustom ? "text-purple-400" : ""}>{models.pro}</span>{" "}
+            <span className="text-arb-border">·</span>{" "}
+            <span className={showCustom ? "text-purple-400" : ""}>{models.against}</span> · {turns.length} turns ·{" "}
             {roundsCount} round{roundsCount === 1 ? "" : "s"} · newest first
           </p>
         </div>
@@ -233,7 +239,7 @@ export function TurnTimeline({
           const origIdx = turns.length - 1 - j;
           const roundNum = Math.floor(origIdx / 2) + 1;
           const borderColor = isA ? "border-l-arb-pro" : "border-l-arb-against";
-          const nameColor = isA ? "text-arb-pro" : "text-arb-against";
+          const nameColor = showCustom ? "text-purple-400" : isA ? "text-arb-pro" : "text-arb-against";
           const tags =
             (biasFlagsByIndex?.[t.index] ?? [])
               .map(tagForBiasFlag)
@@ -247,7 +253,14 @@ export function TurnTimeline({
             >
               <div className="flex gap-4 px-4 py-5 sm:px-5">
                 <div className="w-[120px] shrink-0">
-                  <p className={`font-mono text-xs font-medium leading-tight ${nameColor}`}>{t.modelName}</p>
+                  <p className={`font-mono text-xs font-medium leading-tight ${nameColor}`}>
+                    {t.modelName}
+                    {showCustom ? (
+                      <span className="ml-2 inline-flex align-middle rounded border border-purple-500/45 bg-purple-950/35 px-1.5 py-px font-mono text-[8px] uppercase tracking-wider text-purple-200/90">
+                        Custom
+                      </span>
+                    ) : null}
+                  </p>
                   <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.12em] text-arb-muted">{t.role}</p>
                   <p className="mt-3 font-mono text-[10px] tabular-nums text-arb-muted">R{roundNum}</p>
                 </div>

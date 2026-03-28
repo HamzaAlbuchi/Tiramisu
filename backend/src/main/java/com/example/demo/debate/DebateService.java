@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -47,13 +48,13 @@ public class DebateService {
     public synchronized DebateResult runDebate(String topicRaw, int requestedExchanges) {
         String topic = normalizeTopic(topicRaw);
         int n = clampExchanges(requestedExchanges);
-        return runDebateInternal(topic, n, "balanced", n / 2, null, null);
+        return runDebateInternal(topic, n, "balanced", n / 2, null, null, null);
     }
 
     /**
      * API entry: {@code rounds} is Pro+Against pairs; minimum 1 pair, capped by {@link #MAX_EXCHANGES}.
      */
-    public synchronized DebateResult runDebateWithRounds(String topicRaw, int rounds, String styleRaw) {
+    public synchronized DebateResult runDebateWithRounds(String topicRaw, int rounds, String styleRaw, CustomLlmConfig custom) {
         String topic = normalizeTopic(topicRaw);
         String style = normalizeStyle(styleRaw);
         int pairs = rounds < 1 ? 1 : rounds;
@@ -68,7 +69,7 @@ public class DebateService {
         if (exchanges > MAX_EXCHANGES) {
             exchanges = MAX_EXCHANGES;
         }
-        return runDebateInternal(topic, exchanges, style, rounds, null, null);
+        return runDebateInternal(topic, exchanges, style, rounds, null, null, custom);
     }
 
     /**
@@ -80,7 +81,8 @@ public class DebateService {
             int rounds,
             String styleRaw,
             Consumer<StreamingMeta> onMeta,
-            BiConsumer<Integer, DebateExchange> onTurn) {
+            BiConsumer<Integer, DebateExchange> onTurn,
+            CustomLlmConfig custom) {
         String topic = normalizeTopic(topicRaw);
         String style = normalizeStyle(styleRaw);
         int pairs = rounds < 1 ? 1 : rounds;
@@ -95,7 +97,7 @@ public class DebateService {
         if (exchanges > MAX_EXCHANGES) {
             exchanges = MAX_EXCHANGES;
         }
-        return runDebateInternal(topic, exchanges, style, rounds, onMeta, onTurn);
+        return runDebateInternal(topic, exchanges, style, rounds, onMeta, onTurn, custom);
     }
 
     /** Metadata emitted once at the start of a streaming run. */
@@ -107,6 +109,7 @@ public class DebateService {
         private final int exchangeCount;
         private final String modelA;
         private final String modelB;
+        private final boolean custom;
 
         public StreamingMeta(
                 String topic,
@@ -114,13 +117,15 @@ public class DebateService {
                 int requestedRounds,
                 int exchangeCount,
                 String modelA,
-                String modelB) {
+                String modelB,
+                boolean custom) {
             this.topic = topic;
             this.style = style;
             this.requestedRounds = requestedRounds;
             this.exchangeCount = exchangeCount;
             this.modelA = modelA;
             this.modelB = modelB;
+            this.custom = custom;
         }
 
         public String getTopic() {
@@ -145,6 +150,10 @@ public class DebateService {
 
         public String getModelB() {
             return modelB;
+        }
+
+        public boolean isCustom() {
+            return custom;
         }
     }
 
@@ -180,35 +189,45 @@ public class DebateService {
             String style,
             int requestedRounds,
             Consumer<StreamingMeta> onMeta,
-            BiConsumer<Integer, DebateExchange> onTurn) {
+            BiConsumer<Integer, DebateExchange> onTurn,
+            CustomLlmConfig custom) {
         int pairs = n / 2;
         List<DebateTurn> transcript = new ArrayList<DebateTurn>();
         List<DebateExchange> exchanges = new ArrayList<DebateExchange>();
 
+        boolean useCustom = custom != null;
+        String modelA = DEFAULT_MODEL_A;
+        String modelB = DEFAULT_MODEL_B;
+        if (useCustom) {
+            String base = deriveDisplayBase(custom);
+            modelA = base + " (Pro)";
+            modelB = base + " (Against)";
+        }
+
         if (onMeta != null) {
-            onMeta.accept(new StreamingMeta(topic, style, requestedRounds, n, DEFAULT_MODEL_A, DEFAULT_MODEL_B));
+            onMeta.accept(new StreamingMeta(topic, style, requestedRounds, n, modelA, modelB, useCustom));
         }
 
         debaterService.beginDebateSession(pairs);
         try {
             for (int round = 1; round <= pairs; round++) {
-                String proRaw = generateTurnWithRetry(topic, "pro", round, transcript);
+                String proRaw = generateTurnWithRetry(topic, "pro", round, transcript, custom);
                 String proText = ensureTurnText(proRaw);
-                transcript.add(new DebateTurn(round, "pro", DEFAULT_MODEL_A, proText));
-                exchanges.add(new DebateExchange("A", DEFAULT_MODEL_A, "Pro", 0.9, proText));
+                transcript.add(new DebateTurn(round, "pro", modelA, proText));
+                exchanges.add(new DebateExchange("A", modelA, "Pro", 0.9, proText));
                 notifyTurn(onTurn, exchanges);
 
-                String againstRaw = generateTurnWithRetry(topic, "against", round, transcript);
+                String againstRaw = generateTurnWithRetry(topic, "against", round, transcript, custom);
                 String againstText = ensureTurnText(againstRaw);
-                transcript.add(new DebateTurn(round, "against", DEFAULT_MODEL_B, againstText));
-                exchanges.add(new DebateExchange("B", DEFAULT_MODEL_B, "Against", 0.4, againstText));
+                transcript.add(new DebateTurn(round, "against", modelB, againstText));
+                exchanges.add(new DebateExchange("B", modelB, "Against", 0.4, againstText));
                 notifyTurn(onTurn, exchanges);
             }
         } finally {
             debaterService.endDebateSession();
         }
 
-        JudgeVerdict jv = geminiJudgeService.evaluate(transcript, topic, DEFAULT_MODEL_A, DEFAULT_MODEL_B);
+        JudgeVerdict jv = geminiJudgeService.evaluate(transcript, topic, modelA, modelB);
 
         ModelMetricScores scoresA = toModelMetricScores(jv.getProScores());
         ModelMetricScores scoresB = toModelMetricScores(jv.getAgainstScores());
@@ -218,8 +237,37 @@ public class DebateService {
 
         return new DebateResult(
                 topic, n, exchanges, verdict,
-                DEFAULT_MODEL_A, DEFAULT_MODEL_B, 0.9, 0.4,
-                breakdown);
+                modelA, modelB, 0.9, 0.4,
+                breakdown,
+                useCustom);
+    }
+
+    private static String deriveDisplayBase(CustomLlmConfig c) {
+        if (c.getDisplayLabel() != null && !c.getDisplayLabel().trim().isEmpty()) {
+            return c.getDisplayLabel().trim();
+        }
+        try {
+            String raw = c.getEndpointUrl().trim();
+            if (!raw.matches("(?i)^https?://")) {
+                if (raw.startsWith("//")) {
+                    raw = "https:" + raw;
+                } else {
+                    raw = "https://" + raw;
+                }
+            }
+            int q = raw.indexOf('?');
+            if (q >= 0) {
+                raw = raw.substring(0, q);
+            }
+            URI uri = URI.create(raw);
+            String host = uri.getHost();
+            if (host != null && !host.isEmpty()) {
+                return host;
+            }
+        } catch (Exception ignored) {
+            // fall through
+        }
+        return "Custom model";
     }
 
     private static void notifyTurn(BiConsumer<Integer, DebateExchange> onTurn, List<DebateExchange> exchanges) {
@@ -230,13 +278,14 @@ public class DebateService {
         onTurn.accept(idx, exchanges.get(idx));
     }
 
-    private String generateTurnWithRetry(String topic, String role, int round, List<DebateTurn> transcript) {
-        String raw = debaterService.generateTurn(topic, role, round, transcript);
+    private String generateTurnWithRetry(
+            String topic, String role, int round, List<DebateTurn> transcript, CustomLlmConfig custom) {
+        String raw = debaterService.generateTurn(topic, role, round, transcript, custom);
         if (raw != null && !raw.trim().isEmpty()) {
             return raw;
         }
         // One retry to mitigate transient provider/network failures.
-        return debaterService.generateTurn(topic, role, round, transcript);
+        return debaterService.generateTurn(topic, role, round, transcript, custom);
     }
 
     private static String ensureTurnText(String raw) {

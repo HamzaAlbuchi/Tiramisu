@@ -14,11 +14,13 @@ public class DebateResult {
     private final double modelATemperature;
     private final double modelBTemperature;
     private final EvaluationBreakdown evaluationBreakdown;
+    private final boolean customModels;
 
     public DebateResult(String topic, int exchangeCount, List<DebateExchange> exchanges, DebateVerdict verdict,
                         String modelAName, String modelBName,
                         double modelATemperature, double modelBTemperature,
-                        EvaluationBreakdown evaluationBreakdown) {
+                        EvaluationBreakdown evaluationBreakdown,
+                        boolean customModels) {
         this.topic = topic;
         this.exchangeCount = exchangeCount;
         this.exchanges = exchanges;
@@ -28,6 +30,7 @@ public class DebateResult {
         this.modelATemperature = modelATemperature;
         this.modelBTemperature = modelBTemperature;
         this.evaluationBreakdown = evaluationBreakdown;
+        this.customModels = customModels;
     }
 
     public String getTopic() {
@@ -64,5 +67,9 @@ public class DebateResult {
 
     public EvaluationBreakdown getEvaluationBreakdown() {
         return evaluationBreakdown;
+    }
+
+    public boolean isCustomModels() {
+        return customModels;
     }
 }

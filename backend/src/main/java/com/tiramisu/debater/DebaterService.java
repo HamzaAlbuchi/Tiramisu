@@ -1,8 +1,10 @@
 package com.tiramisu.debater;
 
 import com.tiramisu.model.DebateTurn;
+import com.example.demo.debate.CustomLlmConfig;
 import com.tiramisu.provider.GeminiClient;
 import com.tiramisu.provider.GeminiMessage;
+import com.tiramisu.provider.OpenAiCompatibleClient;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -24,12 +26,14 @@ public class DebaterService {
     private static final double TEMP_AGAINST = 0.4;
 
     private final GeminiClient geminiClient;
+    private final OpenAiCompatibleClient openAiCompatibleClient;
 
     /** Scheduled round count for the in-progress debate (set by orchestrator). */
     private volatile int scheduledRounds = 1;
 
-    public DebaterService(GeminiClient geminiClient) {
+    public DebaterService(GeminiClient geminiClient, OpenAiCompatibleClient openAiCompatibleClient) {
         this.geminiClient = geminiClient;
+        this.openAiCompatibleClient = openAiCompatibleClient;
     }
 
     /**
@@ -47,7 +51,8 @@ public class DebaterService {
             String topic,
             String role,
             int round,
-            List<DebateTurn> fullHistory) {
+            List<DebateTurn> fullHistory,
+            CustomLlmConfig custom) {
         int totalRounds = scheduledRounds;
         String systemPrompt;
         double temperature;
@@ -63,6 +68,16 @@ public class DebaterService {
         }
 
         List<GeminiMessage> history = buildHistory(topic, role, round, totalRounds, fullHistory);
+        if (custom != null) {
+            return openAiCompatibleClient.completeWithHistory(
+                    custom.getEndpointUrl(),
+                    custom.getApiKey(),
+                    custom.getModelId(),
+                    systemPrompt,
+                    history,
+                    temperature,
+                    0);
+        }
         return geminiClient.completeWithHistory(systemPrompt, history, temperature);
     }
 

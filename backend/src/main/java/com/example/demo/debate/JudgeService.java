@@ -19,7 +19,8 @@ import java.util.List;
 public class JudgeService {
 
     public DebateApiResponse toApiResponse(DebateResult result, String style, int requestedRounds) {
-        DebateModelsDto models = new DebateModelsDto(result.getModelAName(), result.getModelBName());
+        DebateModelsDto models = new DebateModelsDto(
+                result.getModelAName(), result.getModelBName(), result.isCustomModels());
         List<DebateTurnDto> turns = new ArrayList<>();
         List<DebateExchange> exchanges = result.getExchanges();
         for (int i = 0; i < exchanges.size(); i++) {

@@ -118,6 +118,37 @@ async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
   }
 }
 
+export async function testCustomLlmConnection(body: {
+  endpointUrl: string;
+  apiKey?: string;
+  modelId?: string;
+}): Promise<{ ok: boolean; message: string }> {
+  const apiBase = baseUrl();
+  if (import.meta.env.PROD && !apiBase) {
+    throw new Error(MISSING_API_URL_MSG);
+  }
+  const path = "/api/debate/custom/test";
+  const url = apiBase ? `${apiBase}${path}` : path;
+  const res = await safeFetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      endpointUrl: body.endpointUrl.trim(),
+      apiKey: body.apiKey ?? "",
+      modelId: body.modelId ?? "",
+    }),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    return { ok: false, message: text?.slice(0, 400) || `HTTP ${res.status}` };
+  }
+  try {
+    return JSON.parse(text) as { ok: boolean; message: string };
+  } catch {
+    return { ok: false, message: "Invalid response from server." };
+  }
+}
+
 export async function runDebate(body: DebateRequestBody): Promise<DebateResponse> {
   const apiBase = baseUrl();
   if (import.meta.env.PROD && !apiBase) {

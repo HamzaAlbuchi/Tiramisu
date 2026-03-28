@@ -142,7 +142,7 @@ function PlanCardExplorer() {
   );
 }
 
-function PlanCardAnalyst() {
+function PlanCardDeveloper() {
   const feats: PlanFeature[] = [
     { ok: true, text: "Unlimited debates" },
     { ok: true, text: "2 models available" },
@@ -151,14 +151,15 @@ function PlanCardAnalyst() {
     { ok: true, text: "Per-turn fallacy scan" },
     { ok: true, text: "PDF + CSV export" },
     { ok: true, text: "Stats & leaderboard access" },
+    { ok: true, text: "BYO model endpoints" },
     { ok: false, text: "Private workspace" },
   ];
   return (
     <div className="flex h-full flex-col border border-arb-border bg-arb-surface p-8" style={{ borderTopWidth: 2, borderTopColor: "var(--arb-pro)" }}>
       <span className="mb-4 inline-flex w-fit border border-arb-pro/35 bg-arb-pro/10 px-2 py-0.5 font-mono text-[0.55rem] uppercase tracking-wider text-arb-pro">
-        Researcher
+        Paid · Soon
       </span>
-      <h3 className="font-bebas text-[2rem] tracking-wide text-arb-pro">Analyst</h3>
+      <h3 className="font-bebas text-[2rem] tracking-wide text-arb-pro">Developer</h3>
       <p className="mt-2 font-serif text-base italic text-arb-muted">For teams studying AI reasoning and bias patterns at scale.</p>
       <div className="my-6 space-y-2 border-y py-6" style={{ borderColor: BORDER2 }}>
         <p className="font-mono text-[0.58rem] uppercase tracking-wider text-arb-muted">Pricing</p>
@@ -194,7 +195,9 @@ function SoonBadge() {
   );
 }
 
-function PlanCardAuditor() {
+const ENTERPRISE_MAIL = "mailto:enterprise@arbiter.app?subject=Arbiter%20Enterprise%20inquiry";
+
+function PlanCardEnterprise() {
   return (
     <div
       className="relative flex h-full flex-col overflow-hidden border border-arb-border p-8"
@@ -210,9 +213,9 @@ function PlanCardAuditor() {
       />
       <div className="relative z-[1]">
         <span className="mb-4 inline-flex w-fit border border-arb-accent/40 bg-arb-accent/15 px-2 py-0.5 font-mono text-[0.55rem] uppercase tracking-wider text-arb-accent">
-          Auditor · Pro
+          Enterprise
         </span>
-        <h3 className="font-bebas text-[2rem] tracking-wide text-arb-accent">Auditor</h3>
+        <h3 className="font-bebas text-[2rem] tracking-wide text-arb-accent">Enterprise</h3>
         <p className="mt-2 font-serif text-base italic text-arb-muted">For compliance teams that need defensible, documented AI evaluation.</p>
         <div className="my-6 space-y-2 border-y py-6" style={{ borderColor: BORDER2 }}>
           <p className="font-mono text-[0.58rem] uppercase tracking-wider text-arb-muted">Pricing</p>
@@ -222,7 +225,7 @@ function PlanCardAuditor() {
           </p>
         </div>
         <ul className="flex-1 space-y-2 font-mono text-[0.68rem] text-arb-text">
-          <li>✓ Everything in Analyst</li>
+          <li>✓ Everything in Developer</li>
           <li>
             ✓ 3+ models available
             <SoonBadge />
@@ -246,10 +249,9 @@ function PlanCardAuditor() {
             <SoonBadge />
           </li>
         </ul>
-        <button
-          type="button"
-          onClick={() => scrollToId("waitlist")}
-          className="mt-8 w-full bg-arb-accent py-3 font-bebas text-lg tracking-[0.12em] text-black transition hover:-translate-y-px"
+        <a
+          href={ENTERPRISE_MAIL}
+          className="mt-8 flex w-full items-center justify-center bg-arb-accent py-3 font-bebas text-lg tracking-[0.12em] text-black transition hover:-translate-y-px"
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "#d4eb3a";
           }}
@@ -257,8 +259,8 @@ function PlanCardAuditor() {
             e.currentTarget.style.background = "var(--arb-accent)";
           }}
         >
-          Request Access →
-        </button>
+          Contact sales →
+        </a>
       </div>
     </div>
   );
@@ -353,8 +355,8 @@ function ComparisonTable() {
           >
             <span className="text-arb-muted">Feature</span>
             <span className="text-center text-arb-muted">Explorer</span>
-            <span className="text-center text-arb-pro">Analyst</span>
-            <span className="text-center text-arb-accent">Auditor</span>
+            <span className="text-center text-arb-pro">Developer</span>
+            <span className="text-center text-arb-accent">Enterprise</span>
           </div>
           {sections.map((sec) => (
             <div key={sec.title} className="mt-6">
@@ -381,10 +383,10 @@ function ComparisonTable() {
   );
 }
 
-type WaitlistTier = "analyst" | "auditor";
+type WaitlistTier = "developer" | "enterprise";
 
 function WaitlistSection() {
-  const [tier, setTier] = useState<WaitlistTier>("analyst");
+  const [tier, setTier] = useState<WaitlistTier>("developer");
   const [email, setEmail] = useState("");
   const [done, setDone] = useState(false);
 
@@ -439,8 +441,8 @@ function WaitlistSection() {
               className="border-b font-mono text-[0.65rem] text-arb-text outline-none sm:w-[130px] sm:border-b-0 sm:border-r"
               style={{ borderColor: BORDER2, background: "var(--arb-bg)", padding: "0.75rem 0.5rem", appearance: "none" }}
             >
-              <option value="analyst">Analyst</option>
-              <option value="auditor">Auditor</option>
+              <option value="developer">Developer</option>
+              <option value="enterprise">Enterprise</option>
             </select>
             <input
               type="email"
@@ -488,7 +490,7 @@ const FAQ_ITEMS: Array<{ q: string; a: string }> = [
   },
   {
     q: "What does '1 model / 2 models / 3+ models' mean?",
-    a: "During beta, debates run on a single model taking both positions. As we add providers, Analyst gets 2 distinct models debating each other, and Auditor gets full model selection across all providers.",
+    a: "During beta, debates run on a single model taking both positions. As we add providers, Developer gets 2 distinct models debating each other, and Enterprise gets full model selection across all providers.",
   },
   {
     q: "Can I use Arbiter for EU AI Act compliance?",
@@ -496,7 +498,7 @@ const FAQ_ITEMS: Array<{ q: string; a: string }> = [
   },
   {
     q: "What is a private workspace?",
-    a: "By default, debates contribute to the public leaderboard. Auditor workspaces are fully private — your debates, topics, and results are never visible publicly.",
+    a: "By default, debates contribute to the public leaderboard. Enterprise workspaces are fully private — your debates, topics, and results are never visible publicly.",
   },
   {
     q: "Do you offer enterprise plans?",
@@ -609,10 +611,10 @@ export function PricingPage() {
             <PlanCardExplorer />
           </div>
           <div className="h-full min-h-0 bg-arb-bg">
-            <PlanCardAnalyst />
+            <PlanCardDeveloper />
           </div>
           <div className="h-full min-h-0 bg-arb-bg">
-            <PlanCardAuditor />
+            <PlanCardEnterprise />
           </div>
         </div>
 

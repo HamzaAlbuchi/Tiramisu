@@ -53,7 +53,8 @@ public class DebateApiController {
         }
         int rounds = request.getRounds();
         String style = request.getStyle() != null ? request.getStyle() : "balanced";
-        DebateResult result = debateService.runDebateWithRounds(request.getTopic(), rounds, style);
+        CustomLlmConfig custom = CustomLlmConfig.fromRequest(request);
+        DebateResult result = debateService.runDebateWithRounds(request.getTopic(), rounds, style, custom);
         DebateApiResponse api = judgeService.toApiResponse(result, style, rounds);
         log.debug("Persisting debate result (sync endpoint)");
         persistenceService.persist(api);
@@ -69,6 +70,7 @@ public class DebateApiController {
         final DebateApiRequest req = request != null ? request : new DebateApiRequest();
         final int rounds = req.getRounds();
         final String style = req.getStyle() != null ? req.getStyle() : "balanced";
+        final CustomLlmConfig custom = CustomLlmConfig.fromRequest(req);
 
         final SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         taskExecutor.execute(() -> {
@@ -83,7 +85,7 @@ public class DebateApiController {
                                     meta.getStyle(),
                                     meta.getRequestedRounds(),
                                     meta.getExchangeCount(),
-                                    new DebateModelsDto(meta.getModelA(), meta.getModelB()));
+                                    new DebateModelsDto(meta.getModelA(), meta.getModelB(), meta.isCustom()));
                             safeSend(emitter, "meta", dto);
                         },
                         (idx, ex) -> {
@@ -95,7 +97,8 @@ public class DebateApiController {
                                     ex.getText(),
                                     ex.getTemperature());
                             safeSend(emitter, "turn", turn);
-                        });
+                        },
+                        custom);
 
                 DebateApiResponse full = judgeService.toApiResponse(result, style, rounds);
                 safeSend(emitter, "complete", full);

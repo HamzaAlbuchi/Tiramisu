@@ -2,6 +2,11 @@ export interface DebateRequestBody {
   topic: string;
   rounds: number;
   style: string;
+  /** OpenAI-compatible chat-completions URL (backend appends /v1/chat/completions when needed). */
+  customEndpointUrl?: string;
+  customApiKey?: string;
+  customModelId?: string;
+  customModelLabel?: string;
 }
 
 export interface MetricPair {
@@ -55,6 +60,8 @@ export interface DebateEvaluation {
 export interface DebateModels {
   pro: string;
   against: string;
+  /** When true, UI shows CUSTOM styling for transcript model names. */
+  custom?: boolean;
 }
 
 export interface DebateTurn {

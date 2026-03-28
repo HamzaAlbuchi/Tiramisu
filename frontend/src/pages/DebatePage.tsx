@@ -5,12 +5,12 @@ import { EvaluationModal } from "@/components/EvaluationModal";
 import { TurnTimeline } from "@/components/TurnTimeline";
 import { exportDebatePdf } from "@/pdf/exportDebatePdf";
 import { runDebateStream, type DebateStreamMeta } from "@/services/api";
-import type { DebateResponse, DebateTurn } from "@/types/debate";
+import type { DebateModels, DebateResponse, DebateTurn } from "@/types/debate";
 import { readAuth, readSpace } from "@/state/spaceAuth";
 
 const SHELL = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
-const DEFAULT_MODELS = { pro: "Gemini (Pro)", against: "Gemini (Against)" } as const;
+const DEFAULT_MODELS: DebateModels = { pro: "Gemini (Pro)", against: "Gemini (Against)" };
 
 export function DebatePage() {
   const [loading, setLoading] = useState(false);
@@ -28,6 +28,7 @@ export function DebatePage() {
   const lastSubmitRef = useRef<DebateFormValues | null>(null);
   const space = typeof window === "undefined" ? null : readSpace();
   const authed = typeof window === "undefined" ? null : readAuth();
+  const byoLocked = space === "explore";
 
   /** When `result` updates, close the modal and (after a short beat) show "Reveal verdict".
    * Scheduling must live here — not after `setResult` in submit — or the effect would cancel the timeout. */
@@ -68,11 +69,20 @@ export function DebatePage() {
       setStreamTurns([]);
       setResult(null);
       try {
+        const useCustom = !byoLocked && v.provider === "custom" && v.customEndpointUrl.trim().length > 0;
         const data = await runDebateStream(
           {
             topic: v.topic.trim(),
             rounds: v.rounds,
             style: v.style,
+            ...(useCustom
+              ? {
+                  customEndpointUrl: v.customEndpointUrl.trim(),
+                  customApiKey: v.customApiKey,
+                  customModelId: v.customModelId.trim(),
+                  customModelLabel: v.customModelLabel.trim(),
+                }
+              : {}),
           },
           {
             signal: ac.signal,
@@ -94,7 +104,7 @@ export function DebatePage() {
         streamAbortRef.current = null;
       }
     },
-    [],
+    [byoLocked],
   );
 
   const exportJson = () => {
@@ -222,7 +232,7 @@ export function DebatePage() {
                 </div>
               ) : null}
             </div>
-            <DebateForm loading={loading} onSubmit={onSubmit} className="max-w-3xl" />
+            <DebateForm loading={loading} onSubmit={onSubmit} byoLocked={byoLocked} className="max-w-3xl" />
 
             {error ? (
               <p className="mt-6 border border-red-900/40 bg-red-950/25 px-3 py-2 font-mono text-xs text-red-200/90">
@@ -303,6 +313,7 @@ export function DebatePage() {
                 key={sessionKey}
                 turns={liveTurns}
                 models={models}
+                modelsCustom={!!models.custom}
                 thinkingMs={0}
                 staggerMs={0}
                 notifyOnComplete={false}
