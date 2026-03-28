@@ -7,7 +7,6 @@ import { useEffect, useState, type ReactNode } from "react";
 import { getStats, type StatsResponse } from "@/services/api";
 
 const GREEN = "#4cdc8c";
-const MODELS_COUNT = 4;
 
 const fade = (delaySec: number) => ({
   animationDelay: `${delaySec}s`,
@@ -79,7 +78,10 @@ function buildTickerItems(stats: StatsResponse | undefined): ReactNode[] {
     );
 
   const recent = stats?.recentDebates?.[0];
-  const confPct = recent && typeof recent.confidence === "number" ? formatPct(recent.confidence) : null;
+  const confPct =
+    recent && typeof recent.confidence === "number" && !Number.isNaN(recent.confidence)
+      ? Math.round(Math.max(0, Math.min(1, recent.confidence)) * 100)
+      : null;
   const line4 =
     recent?.topic && recent?.winnerLabel && confPct !== null ? (
       <>
@@ -115,6 +117,60 @@ function buildTickerItems(stats: StatsResponse | undefined): ReactNode[] {
   );
 
   return [line1, line2, line3, line4, line5];
+}
+
+type StripCell = { v: string; label: string; color: string };
+
+function deriveStripCells(stats: StatsResponse | null): StripCell[] {
+  if (stats === null) {
+    return [
+      { v: "—", label: "Total debates", color: "var(--arb-accent)" },
+      { v: "—", label: "Top win rate", color: "var(--arb-pro)" },
+      { v: "—", label: "Avg confidence", color: "var(--arb-text)" },
+      { v: "—", label: "Framing bias freq", color: "var(--arb-against)" },
+      { v: "—", label: "Models available", color: "rgb(76,220,140)" },
+    ];
+  }
+
+  const total = typeof stats.totalDebates === "number" ? stats.totalDebates : 0;
+  const top = stats.leaderboard?.[0];
+  const winStr =
+    top && typeof top.winRate === "number" && !Number.isNaN(top.winRate) && (stats.leaderboard?.length ?? 0) > 0
+      ? `${Math.round(top.winRate * 100)}%`
+      : "—";
+
+  let avgConfStr = "—";
+  const recent = stats.recentDebates;
+  if (recent && recent.length > 0) {
+    let sum = 0;
+    let n = 0;
+    for (const d of recent) {
+      if (typeof d.confidence === "number" && !Number.isNaN(d.confidence)) {
+        sum += d.confidence;
+        n += 1;
+      }
+    }
+    if (n > 0) {
+      avgConfStr = `${Math.round((sum / n) * 100)}%`;
+    }
+  }
+
+  let framingStr = "0%";
+  if (total > 0 && stats.biasStats) {
+    const fh = typeof stats.biasStats.framingHigh === "number" ? stats.biasStats.framingHigh : 0;
+    const fm = typeof stats.biasStats.framingMedium === "number" ? stats.biasStats.framingMedium : 0;
+    framingStr = `${Math.round(((fh + fm) / total) * 100)}%`;
+  }
+
+  const modelCount = stats.leaderboard?.length ?? 0;
+
+  return [
+    { v: String(total), label: "Total debates", color: "var(--arb-accent)" },
+    { v: winStr, label: "Top win rate", color: "var(--arb-pro)" },
+    { v: avgConfStr, label: "Avg confidence", color: "var(--arb-text)" },
+    { v: framingStr, label: "Framing bias freq", color: "var(--arb-against)" },
+    { v: String(modelCount), label: "Models available", color: "rgb(76,220,140)" },
+  ];
 }
 
 function LandingHeader() {
@@ -189,24 +245,12 @@ function LandingHeader() {
   );
 }
 
-function LiveTicker() {
+function LiveTicker({ stats }: { stats: StatsResponse | null }) {
   const [items, setItems] = useState<ReactNode[]>(() => buildTickerItems(undefined));
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await getStats();
-        if (cancelled) return;
-        setItems(buildTickerItems(data));
-      } catch {
-        /* keep initial hardcoded ticker */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    setItems(buildTickerItems(stats ?? undefined));
+  }, [stats]);
 
   const sep = (
     <span
@@ -362,25 +406,6 @@ function HeroSection() {
             See how it works →
           </a>
         </div>
-
-        <div
-          className="landing-fade-up mt-14 grid max-w-3xl grid-cols-2 gap-8 border-t border-arb-border pt-10 sm:grid-cols-4"
-          style={fade(0.5)}
-        >
-          {[
-            { v: "347", label: "Debates run", c: "var(--arb-accent)" },
-            { v: "67%", label: "Top win rate", c: "var(--arb-pro)" },
-            { v: "82%", label: "Peak confidence", c: "var(--arb-against)" },
-            { v: "44%", label: "Decisive verdicts", c: GREEN },
-          ].map((s) => (
-            <div key={s.label}>
-              <p className="font-bebas text-[2rem] leading-none" style={{ color: s.c }}>
-                {s.v}
-              </p>
-              <p className="mt-1 font-mono text-[0.58rem] uppercase tracking-[0.12em] text-arb-muted">{s.label}</p>
-            </div>
-          ))}
-        </div>
       </div>
 
       <DebatePreviewCard />
@@ -388,14 +413,8 @@ function HeroSection() {
   );
 }
 
-function StatsStripSection() {
-  const cells = [
-    { v: "347", label: "Total debates", color: "var(--arb-accent)" },
-    { v: "67%", label: "Top win rate", color: "var(--arb-pro)" },
-    { v: "71%", label: "Avg confidence", color: "var(--arb-text)" },
-    { v: "43%", label: "Framing bias freq", color: "var(--arb-against)" },
-    { v: String(MODELS_COUNT), label: "Models available", color: "rgb(76,220,140)" },
-  ];
+function StatsStripSection({ stats }: { stats: StatsResponse | null }) {
+  const cells = deriveStripCells(stats);
   return (
     <section className="w-full border-y border-arb-border bg-arb-surface p-10">
       <div className="grid grid-cols-3 divide-x divide-arb-border sm:grid-cols-5">
@@ -673,13 +692,32 @@ function SectionCta() {
 }
 
 export function HomeLandingPage() {
+  const [stats, setStats] = useState<StatsResponse | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getStats();
+        if (!cancelled) {
+          setStats(data);
+        }
+      } catch {
+        /* strip + ticker keep fallbacks when null */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-arb-bg text-arb-text">
       <LandingHeader />
-      <LiveTicker />
+      <LiveTicker stats={stats} />
       <main>
         <HeroSection />
-        <StatsStripSection />
+        <StatsStripSection stats={stats} />
         <SectionHow />
         <SectionFeatures />
         <SectionUseCases />
