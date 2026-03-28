@@ -3,7 +3,11 @@
  * Uses existing Tailwind arb-* tokens and fonts only.
  */
 
+import { useEffect, useState, type ReactNode } from "react";
+import { getStats, type StatsResponse } from "@/services/api";
+
 const GREEN = "#4cdc8c";
+const MODELS_COUNT = 4;
 
 const fade = (delaySec: number) => ({
   animationDelay: `${delaySec}s`,
@@ -14,6 +18,103 @@ function scrollToSection(hash: string) {
   const id = hash.slice(1);
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   window.history.replaceState({}, "", hash);
+}
+
+function truncateTopic(s: string, maxChars: number): string {
+  const t = s.trim();
+  if (t.length <= maxChars) return t;
+  return `${t.slice(0, maxChars - 1)}…`;
+}
+
+function formatPct(n: number | undefined): string | null {
+  if (typeof n !== "number" || Number.isNaN(n)) return null;
+  return String(Math.round(n));
+}
+
+function buildTickerItems(stats: StatsResponse | undefined): ReactNode[] {
+  const line2Fallback = (
+    <>
+      347 debates run · 44% decisive verdicts
+    </>
+  );
+  const line3Fallback = (
+    <>
+      Top performer: Gemini (Pro) · 67% win rate
+    </>
+  );
+  const line4Fallback = (
+    <>
+      Latest: Should immigration be stopped? → Against wins · 80% confidence
+    </>
+  );
+  const line5Fallback = (
+    <>
+      Framing bias most common · detected in 43% of debates
+    </>
+  );
+
+  const total = stats && typeof stats.totalDebates === "number" ? stats.totalDebates : null;
+  const decisivePct = stats ? formatPct(stats.verdictDistribution?.decisive?.percentage) : null;
+  const line2 =
+    total !== null && decisivePct !== null ? (
+      <>
+        {total} debates run · {decisivePct}% decisive verdicts
+      </>
+    ) : (
+      line2Fallback
+    );
+
+  const top = stats?.leaderboard?.[0];
+  const winRatePct =
+    top && typeof top.winRate === "number" && !Number.isNaN(top.winRate)
+      ? Math.round(top.winRate * 100)
+      : null;
+  const line3 =
+    top?.modelLabel && winRatePct !== null ? (
+      <>
+        Top performer: {top.modelLabel} · {winRatePct}% win rate
+      </>
+    ) : (
+      line3Fallback
+    );
+
+  const recent = stats?.recentDebates?.[0];
+  const confPct = recent && typeof recent.confidence === "number" ? formatPct(recent.confidence) : null;
+  const line4 =
+    recent?.topic && recent?.winnerLabel && confPct !== null ? (
+      <>
+        Latest: {truncateTopic(recent.topic, 48)} → {recent.winnerLabel} wins · {confPct}% confidence
+      </>
+    ) : (
+      line4Fallback
+    );
+
+  let line5: ReactNode = line5Fallback;
+  if (stats && total !== null && total > 0 && stats.biasStats) {
+    const { framingHigh, framingMedium } = stats.biasStats;
+    const fh = typeof framingHigh === "number" ? framingHigh : 0;
+    const fm = typeof framingMedium === "number" ? framingMedium : 0;
+    const pct = Math.round(((fh + fm) / total) * 100);
+    if (!Number.isNaN(pct)) {
+      line5 = (
+        <>
+          Framing bias flagged · detected in {pct}% of debates
+        </>
+      );
+    }
+  }
+
+  const line1 = (
+    <>
+      <span className="inline-flex items-center gap-1.5">
+        <span className="landing-live-dot inline-block h-1.5 w-1.5 rounded-full" style={{ background: GREEN }} />
+        <span style={{ color: GREEN }}>LIVE</span>
+      </span>{" "}
+      Gemini wins on AI ethics · Confidence 82%
+    </>
+  );
+
+  return [line1, line2, line3, line4, line5];
 }
 
 function LandingHeader() {
@@ -89,21 +190,23 @@ function LandingHeader() {
 }
 
 function LiveTicker() {
-  const items = [
-    <>
-      <span className="inline-flex items-center gap-1.5">
-        <span className="landing-live-dot inline-block h-1.5 w-1.5 rounded-full" style={{ background: GREEN }} />
-        <span style={{ color: GREEN }}>LIVE</span>
-      </span>{" "}
-      Gemini wins on AI ethics · Confidence 82%
-    </>,
-    <>347 debates run · 44% decisive verdicts</>,
-    <>Top performer: Gemini (Pro) · 67% win rate</>,
-    <>
-      Latest: Should immigration be stopped? → Against wins · 80% confidence
-    </>,
-    <>Framing bias most common · detected in 43% of debates</>,
-  ];
+  const [items, setItems] = useState<ReactNode[]>(() => buildTickerItems(undefined));
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getStats();
+        if (cancelled) return;
+        setItems(buildTickerItems(data));
+      } catch {
+        /* keep initial hardcoded ticker */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const sep = (
     <span
@@ -285,63 +388,171 @@ function HeroSection() {
   );
 }
 
-function SectionHow() {
+function StatsStripSection() {
+  const cells = [
+    { v: "347", label: "Total debates", color: "var(--arb-accent)" },
+    { v: "67%", label: "Top win rate", color: "var(--arb-pro)" },
+    { v: "71%", label: "Avg confidence", color: "var(--arb-text)" },
+    { v: "43%", label: "Framing bias freq", color: "var(--arb-against)" },
+    { v: String(MODELS_COUNT), label: "Models available", color: "rgb(76,220,140)" },
+  ];
   return (
-    <section id="how" className="scroll-mt-32 border-t border-arb-border bg-arb-bg px-6 py-20 sm:px-10">
-      <div className="mx-auto max-w-4xl">
-        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-arb-accent">How it works</p>
-        <h2 className="mt-3 font-bebas text-4xl tracking-wide text-arb-text sm:text-5xl">From topic to verdict</h2>
-        <ol className="mt-12 space-y-10">
-          {[
-            {
-              n: "01",
-              t: "Define the question",
-              d: "Set a resolution, stance, and round count. Arbiter runs a structured Gemini vs. Gemini debate with clear roles.",
-            },
-            {
-              n: "02",
-              t: "Watch evidence emerge",
-              d: "Streaming turns show each side as it is generated — no black-box batch run. The judge scores bias, accuracy, and rhetoric.",
-            },
-            {
-              n: "03",
-              t: "Export the record",
-              d: "Download an audit-ready PDF with the topic, transcript, verdict, and metrics for compliance or research archives.",
-            },
-          ].map((step) => (
-            <li key={step.n} className="flex gap-6 border-b border-arb-border pb-10 last:border-0">
-              <span className="font-bebas text-3xl text-arb-accent">{step.n}</span>
-              <div>
-                <h3 className="font-bebas text-2xl text-arb-text">{step.t}</h3>
-                <p className="mt-2 max-w-xl font-mono text-sm leading-relaxed text-arb-muted">{step.d}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+    <section className="w-full border-y border-arb-border bg-arb-surface p-10">
+      <div className="grid grid-cols-3 divide-x divide-arb-border sm:grid-cols-5">
+        {cells.map((c, i) => (
+          <div
+            key={c.label}
+            className={`text-center ${i >= 3 ? "hidden sm:block" : ""}`}
+            style={{ padding: "1.5rem" }}
+          >
+            <p className="font-bebas text-[2.2rem] leading-none" style={{ color: c.color }}>
+              {c.v}
+            </p>
+            <p className="mt-2 font-mono text-[0.55rem] uppercase tracking-[0.12em] text-arb-muted">{c.label}</p>
+          </div>
+        ))}
       </div>
     </section>
   );
 }
 
-function SectionFeatures() {
-  const feats = [
-    { title: "Structured verdicts", body: "Winner, confidence, and verdict type with judge narrative — not a vibe score." },
-    { title: "Bias & fallacy signals", body: "Framing, authority, omission, and recency tracked across turns for governance review." },
-    { title: "Stats & persistence", body: "PostgreSQL-backed aggregates when enabled — leaderboards, distributions, recent debates." },
-    { title: "SSE streaming", body: "See each turn as the API returns it; failures surface with retry instead of silent drops." },
-  ];
+function SectionHow() {
+  const steps = [
+    {
+      n: "01",
+      t: "Define the question",
+      d: "Set a resolution, stance, and round count. Arbiter runs a structured Gemini vs. Gemini debate with clear roles.",
+    },
+    {
+      n: "02",
+      t: "Watch evidence emerge",
+      d: "Streaming turns show each side as it is generated — no black-box batch run. The judge scores bias, accuracy, and rhetoric.",
+    },
+    {
+      n: "03",
+      t: "Export the record",
+      d: "Download an audit-ready PDF with the topic, transcript, verdict, and metrics for compliance or research archives.",
+    },
+  ] as const;
   return (
-    <section id="features" className="scroll-mt-32 border-t border-arb-border px-6 py-20 sm:px-10">
-      <div className="mx-auto max-w-5xl">
-        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-arb-accent">Features</p>
-        <h2 className="mt-3 font-bebas text-4xl tracking-wide text-arb-text sm:text-5xl">Built for evaluation, not chat</h2>
-        <div className="mt-12 grid gap-4 sm:grid-cols-2">
-          {feats.map((f) => (
-            <div key={f.title} className="border border-arb-border bg-arb-surface p-6">
-              <h3 className="font-bebas text-2xl text-arb-text">{f.title}</h3>
-              <p className="mt-2 font-mono text-sm leading-relaxed text-arb-muted">{f.body}</p>
+    <section id="how" className="scroll-mt-32 border-t border-arb-border bg-arb-bg px-6 py-20 sm:px-10">
+      <div className="mx-auto max-w-6xl">
+        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-arb-accent">How it works</p>
+        <h2 className="mt-3 font-bebas text-4xl tracking-wide text-arb-text sm:text-5xl">From topic to verdict</h2>
+        <div className="mt-12 grid gap-px bg-arb-border sm:grid-cols-3">
+          {steps.map((step) => (
+            <div className="group bg-arb-surface p-8 transition-colors duration-300 ease-out hover:bg-[#161618]">
+              <p className="font-bebas text-[4rem] leading-none text-[#2a2a2f] transition-colors duration-300 ease-out group-hover:text-arb-accent">
+                {step.n}
+              </p>
+              <h3 className="mt-4 font-bebas text-[1.3rem] tracking-wide text-arb-text">{step.t}</h3>
+              <p className="mt-3 font-mono text-[0.68rem] leading-[1.8] text-arb-muted">{step.d}</p>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ScoreBarRow({ label, value, max = 10 }: { label: string; value: number; max?: number }) {
+  const pct = Math.min(100, Math.max(0, (value / max) * 100));
+  return (
+    <div className="flex items-center gap-3">
+      <span className="w-[90px] shrink-0 font-mono text-[0.65rem] uppercase tracking-wider text-arb-muted">{label}</span>
+      <div className="flex h-[3px] flex-1 bg-arb-border">
+        <div className="h-full bg-arb-pro" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="w-9 shrink-0 text-right font-mono text-[0.65rem] tabular-nums text-arb-text">{value.toFixed(1)}</span>
+    </div>
+  );
+}
+
+function SampleVerdictCard() {
+  return (
+    <div className="border border-arb-border bg-arb-surface">
+      <div className="flex items-center justify-between bg-arb-accent px-4 py-3 font-mono text-[0.65rem] font-medium text-black">
+        <span>⚖ Sample Verdict</span>
+        <span>Confidence: 80%</span>
+      </div>
+      <div className="space-y-4 p-5">
+        <div>
+          <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-arb-muted">Winner · Decisive</p>
+          <p className="mt-1 font-bebas text-[1.8rem] leading-none text-arb-pro">Gemini (Against)</p>
+          <p className="mt-2 font-serif text-[0.75rem] italic leading-relaxed text-arb-muted">
+            Gemini (Against) consistently demanded falsifiable evidence the pro side failed to provide across all three
+            rounds.
+          </p>
+        </div>
+        <div className="space-y-2 border-t border-arb-border pt-4">
+          <ScoreBarRow label="Accuracy" value={7} />
+          <ScoreBarRow label="Logic" value={8} />
+          <ScoreBarRow label="Evidence" value={5} />
+          <ScoreBarRow label="Consistency" value={9} />
+        </div>
+        <div className="flex flex-wrap gap-2 border-t border-arb-border pt-4">
+          <span className="rounded-[2px] border border-red-900/45 bg-red-950/25 px-2 py-[3px] font-mono text-[0.52rem] uppercase tracking-wider text-red-200/75">
+            Framing high
+          </span>
+          <span className="rounded-[2px] border border-amber-900/40 bg-amber-950/20 px-2 py-[3px] font-mono text-[0.52rem] uppercase tracking-wider text-amber-200/75">
+            Omission med
+          </span>
+          <span className="rounded-[2px] border border-emerald-900/45 bg-emerald-950/25 px-2 py-[3px] font-mono text-[0.52rem] uppercase tracking-wider text-emerald-200/80">
+            Authority low
+          </span>
+          <span className="rounded-[2px] border border-emerald-900/45 bg-emerald-950/25 px-2 py-[3px] font-mono text-[0.52rem] uppercase tracking-wider text-emerald-200/80">
+            Recency low
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SectionFeatures() {
+  const feats = [
+    { icon: "⚖", title: "Structured verdicts", body: "Winner, confidence, and verdict type with judge narrative — not a vibe score." },
+    { icon: "🔍", title: "Bias & fallacy signals", body: "Framing, authority, omission, and recency tracked across turns for governance review." },
+    { icon: "📊", title: "Stats & persistence", body: "PostgreSQL-backed aggregates when enabled — leaderboards, distributions, recent debates." },
+    { icon: "⚡", title: "SSE streaming", body: "See each turn as the API returns it; failures surface with retry instead of silent drops." },
+    {
+      icon: "📄",
+      title: "Auditable PDF Export",
+      body: "Every debate generates a timestamped PDF with a unique Record ID — suitable for compliance archives.",
+    },
+    {
+      icon: "🔗",
+      title: "Real Model Interaction",
+      body: "Each model receives the full debate history before responding. Genuine adversarial reasoning — not isolated prompts.",
+    },
+  ] as const;
+  return (
+    <section id="features" className="scroll-mt-32 border-t border-arb-border px-6 py-20 sm:px-10">
+      <div className="mx-auto max-w-6xl">
+        <p className="font-mono text-[0.62rem] uppercase tracking-[0.22em] text-arb-accent">Features</p>
+        <h2 className="mt-3 font-bebas text-4xl tracking-wide text-arb-text sm:text-5xl">Built for evaluation, not chat</h2>
+        <div className="mt-12 grid gap-8 lg:grid-cols-[1fr,minmax(280px,380px)] lg:items-start">
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+            {feats.map((f) => (
+              <div
+                key={f.title}
+                className="group flex gap-4 border border-arb-border bg-arb-surface p-6 transition-colors duration-300 hover:bg-[#161618]"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center border border-[#2a2a2f] bg-arb-bg">
+                  <span className="text-center text-base leading-none" aria-hidden>
+                    {f.icon}
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-bebas text-2xl text-arb-text">{f.title}</h3>
+                  <p className="mt-2 font-mono text-sm leading-relaxed text-arb-muted">{f.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="lg:sticky lg:top-28">
+            <SampleVerdictCard />
+          </div>
         </div>
       </div>
     </section>
@@ -353,16 +564,19 @@ function SectionUseCases() {
     {
       title: "AI & research teams",
       body: "Compare reasoning quality on safety, policy, and technical topics before you ship or publish.",
+      topBorder: "var(--arb-accent)",
     },
     {
       title: "Compliance & risk",
       body: "Retain PDF-ready transcripts and verdicts for audits — structured outputs, not informal chat logs.",
+      topBorder: "var(--arb-pro)",
     },
     {
       title: "Policy & social science",
       body: "Stress-test controversial resolutions with explicit bias metrics and judge commentary.",
+      topBorder: "var(--arb-against)",
     },
-  ];
+  ] as const;
   return (
     <section id="use-cases" className="scroll-mt-32 border-t border-arb-border bg-arb-surface/50 px-6 py-20 sm:px-10">
       <div className="mx-auto max-w-5xl">
@@ -370,7 +584,11 @@ function SectionUseCases() {
         <h2 className="mt-3 font-bebas text-4xl tracking-wide text-arb-text sm:text-5xl">Who Arbiter is for</h2>
         <ul className="mt-12 grid gap-6 sm:grid-cols-3">
           {cases.map((c) => (
-            <li key={c.title} className="border border-arb-border bg-arb-bg/80 p-6">
+            <li
+              key={c.title}
+              className="border border-arb-border bg-arb-bg/80 p-6"
+              style={{ borderTopWidth: 2, borderTopColor: c.topBorder, borderTopStyle: "solid" }}
+            >
               <h3 className="font-bebas text-xl text-arb-text">{c.title}</h3>
               <p className="mt-2 font-mono text-xs leading-relaxed text-arb-muted">{c.body}</p>
             </li>
@@ -401,6 +619,59 @@ function SectionUseCases() {
   );
 }
 
+function SectionCta() {
+  return (
+    <section className="relative overflow-hidden border-t border-arb-border text-center" style={{ padding: "7rem 2.5rem" }}>
+      <div
+        className="pointer-events-none absolute left-1/2 top-1/2 h-[500px] w-[500px] -translate-x-1/2 -translate-y-1/2"
+        style={{
+          background: "radial-gradient(circle, rgba(232,255,71,0.05) 0%, transparent 70%)",
+        }}
+      />
+      <div className="relative z-[1] mx-auto max-w-[600px]">
+        <p className="mb-6 font-mono text-[0.6rem] uppercase tracking-[0.22em] text-arb-accent">Ready to run your first evaluation?</p>
+        <h2 className="mb-6 font-bebas leading-[0.92] text-arb-text" style={{ fontSize: "clamp(3rem, 7vw, 6rem)" }}>
+          <span className="block">TRUST REQUIRES</span>
+          <span className="block font-serif italic text-arb-accent">proof.</span>
+        </h2>
+        <p className="mx-auto mb-10 max-w-[380px] font-mono text-[0.72rem] leading-[1.8] text-arb-muted">
+          Your AI sounds confident. Arbiter tells you if it can back that up — structured bias scoring, fallacy detection, and
+          auditable reports.
+        </p>
+        <div className="flex flex-row flex-wrap items-center justify-center gap-4">
+          <a
+            href="/debate"
+            onClick={(e) => {
+              e.preventDefault();
+              window.__TIRAMISU_NAVIGATE__?.("/debate");
+            }}
+            className="inline-flex items-center justify-center bg-arb-accent font-bebas text-[1.1rem] tracking-[0.15em] text-black transition hover:-translate-y-0.5"
+            style={{ padding: "0.85rem 2.5rem" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#d4eb3a";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "var(--arb-accent)";
+            }}
+          >
+            ⚡ Run a Debate
+          </a>
+          <a
+            href="/stats"
+            onClick={(e) => {
+              e.preventDefault();
+              window.__TIRAMISU_NAVIGATE__?.("/stats");
+            }}
+            className="font-mono text-[0.65rem] text-arb-muted transition hover:text-arb-text"
+          >
+            View Leaderboard →
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function HomeLandingPage() {
   return (
     <div className="min-h-screen bg-arb-bg text-arb-text">
@@ -408,9 +679,11 @@ export function HomeLandingPage() {
       <LiveTicker />
       <main>
         <HeroSection />
+        <StatsStripSection />
         <SectionHow />
         <SectionFeatures />
         <SectionUseCases />
+        <SectionCta />
       </main>
       <footer className="border-t border-arb-border py-10 text-center font-mono text-[0.58rem] uppercase tracking-[0.14em] text-arb-muted">
         © {new Date().getFullYear()} Arbiter · Adversarial AI evaluation
