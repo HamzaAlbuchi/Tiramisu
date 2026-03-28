@@ -10,7 +10,8 @@
   --arb-accent: #e8ff47;
   --arb-pro: #47c8ff;
   --arb-against: #ff6b7a;
-  --arb-muted: #5a5a62;
+  /* Secondary copy: light enough for small uppercase / ticker text on dark bg */
+  --arb-muted: #b4b4bd;
   --arb-text: #f0f0ee;
 }
 
