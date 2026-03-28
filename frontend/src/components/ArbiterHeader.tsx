@@ -40,7 +40,7 @@ export function ArbiterHeader() {
           href="/"
           onClick={(e) => {
             e.preventDefault();
-            navToDebates();
+            navToHome();
           }}
           className="font-bebas text-2xl tracking-[0.02em]"
         >

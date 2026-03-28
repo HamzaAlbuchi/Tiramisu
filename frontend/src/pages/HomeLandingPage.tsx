@@ -202,7 +202,7 @@ function HeroSection() {
         style={{ background: "rgba(232,255,71,0.04)" }}
       />
 
-      <div className="relative z-[1] mx-auto flex w-full max-w-[1100px] flex-col">
+      <div className="relative z-[1] mx-auto flex w-full max-w-[1100px] flex-col min-[900px]:max-w-[min(1100px,calc(100%-420px))] min-[900px]:pr-4">
         <p
           className="landing-fade-up font-mono text-[0.62rem] uppercase tracking-[0.22em] text-arb-accent"
           style={fade(0.1)}
@@ -258,7 +258,7 @@ function HeroSection() {
             href="#how"
             onClick={(e) => {
               e.preventDefault();
-              document.getElementById("how")?.scrollIntoView({ behavior: "smooth" });
+              scrollToSection("#how");
             }}
             className="font-mono text-[0.65rem] text-arb-muted transition hover:text-arb-text"
           >
