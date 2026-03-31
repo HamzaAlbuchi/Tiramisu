@@ -192,8 +192,8 @@ function LandingHeader() {
           }}
           className="font-bebas text-[1.6rem] tracking-[0.1em]"
         >
-          <span className="text-arb-accent">ar</span>
-          <span className="text-arb-text">bitre</span>
+          <span className="text-arb-accent">arbi</span>
+          <span className="text-arb-text">tre</span>
         </a>
         <nav className="flex max-w-[55vw] items-center gap-3 overflow-x-auto md:max-w-none md:gap-6">
           {(

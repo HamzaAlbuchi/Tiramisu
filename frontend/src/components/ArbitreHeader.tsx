@@ -47,8 +47,8 @@ export function ArbitreHeader() {
           }}
           className="font-bebas text-2xl tracking-[0.02em]"
         >
-          <span className="text-arb-accent">ar</span>
-          <span className="text-arb-text">bitre</span>
+          <span className="text-arb-accent">arbi</span>
+          <span className="text-arb-text">tre</span>
         </a>
         <nav className="flex items-center gap-1 sm:gap-4">
           <ul className="flex items-center gap-3 sm:gap-5">
