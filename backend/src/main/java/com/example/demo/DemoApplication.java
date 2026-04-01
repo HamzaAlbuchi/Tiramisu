@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = {"com.example.demo", "com.tiramisu"})
-@EntityScan(basePackages = {"com.tiramisu.entity"})
-@EnableJpaRepositories(basePackages = {"com.tiramisu.entity"})
+@EntityScan(basePackages = {"com.tiramisu.entity", "com.example.demo.invite"})
+@EnableJpaRepositories(basePackages = {"com.tiramisu.entity", "com.example.demo.invite"})
 public class DemoApplication {
 
     public static void main(String[] args) {
