@@ -3,12 +3,25 @@ const STORAGE_REMAINING = "arbiter.inviteRemainingRuns";
 const DEFAULT_RUNS = 3;
 
 export function isInviteKeyRequired(): boolean {
-  // Beta lock-down: require in production by default.
+  // Must stay in sync with backend APP_INVITE_REQUIRED: if the API requires X-Invite-Key,
+  // the UI must show the gate. Previously any VITE_REQUIRE_INVITE_KEY value other than
+  // "true" hid the gate in prod while the API still returned 403.
   const flag = import.meta.env.VITE_REQUIRE_INVITE_KEY;
-  if (typeof flag === "string") {
-    return flag.toLowerCase() === "true";
+  const explicitOff = typeof flag === "string" && flag.toLowerCase() === "false";
+  const explicitOn = typeof flag === "string" && flag.toLowerCase() === "true";
+
+  if (typeof window !== "undefined") {
+    const w = (window as unknown as { __TIRAMISU_REQUIRE_INVITE__?: string }).__TIRAMISU_REQUIRE_INVITE__;
+    if (typeof w === "string") {
+      if (w.toLowerCase() === "false") return false;
+      if (w.toLowerCase() === "true") return true;
+    }
   }
-  return import.meta.env.PROD;
+
+  if (import.meta.env.PROD) {
+    return !explicitOff;
+  }
+  return explicitOn;
 }
 
 export function readInviteKey(): string | null {
