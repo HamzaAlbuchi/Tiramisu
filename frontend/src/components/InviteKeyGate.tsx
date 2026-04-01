@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { isInviteKeyRequired, readInviteKey, writeInviteKey } from "@/state/inviteKey";
+import { isInviteKeyRequired, readInviteKey, readInviteRemainingRuns, writeInviteKey } from "@/state/inviteKey";
 
 const field =
   "w-full border border-arb-border bg-arb-bg px-3 py-2 font-mono text-xs text-arb-text outline-none transition focus:border-arb-muted focus:ring-1 focus:ring-arb-border";
@@ -10,6 +10,7 @@ export function InviteKeyGate({ onUnlocked }: { onUnlocked?: () => void }) {
   const existing = useMemo(() => (typeof window === "undefined" ? null : readInviteKey()), []);
   const [key, setKey] = useState(existing ?? "");
   const [err, setErr] = useState<string | null>(null);
+  const remaining = useMemo(() => (typeof window === "undefined" ? 0 : readInviteRemainingRuns()), []);
 
   if (!required) {
     return null;
@@ -19,7 +20,7 @@ export function InviteKeyGate({ onUnlocked }: { onUnlocked?: () => void }) {
     <div className="mb-6 border border-arb-border bg-arb-surface/50 p-4 sm:p-5">
       <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-arb-muted">Beta access</p>
       <p className="mt-2 font-mono text-xs leading-relaxed text-arb-muted">
-        Enter an invitation key to run debates in the beta.
+        Enter an invitation key to unlock 3 debate runs.
       </p>
 
       <form
@@ -77,7 +78,7 @@ export function InviteKeyGate({ onUnlocked }: { onUnlocked?: () => void }) {
         </a>
         <span className="font-mono text-[10px] text-arb-border">|</span>
         <span className="font-mono text-[10px] uppercase tracking-wider text-arb-muted">
-          You only need to enter it once on this device.
+          Runs remaining: {remaining}
         </span>
       </div>
     </div>

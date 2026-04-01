@@ -8,7 +8,12 @@ import { runDebateStream, type DebateStreamMeta } from "@/services/api";
 import type { DebateModels, DebateResponse, DebateTurn } from "@/types/debate";
 import { readAuth, readSpace } from "@/state/spaceAuth";
 import { InviteKeyGate } from "@/components/InviteKeyGate";
-import { isInviteKeyRequired, readInviteKey } from "@/state/inviteKey";
+import {
+  decrementInviteRemainingRuns,
+  isInviteKeyRequired,
+  readInviteKey,
+  readInviteRemainingRuns,
+} from "@/state/inviteKey";
 
 const SHELL = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
@@ -33,7 +38,8 @@ export function DebatePage() {
   const byoLocked = space === "explore";
   const inviteRequired = typeof window === "undefined" ? false : isInviteKeyRequired();
   const hasInviteKey = typeof window === "undefined" ? false : readInviteKey() !== null;
-  const locked = inviteRequired && !hasInviteKey;
+  const remainingRuns = typeof window === "undefined" ? 0 : readInviteRemainingRuns();
+  const locked = inviteRequired && (!hasInviteKey || remainingRuns <= 0);
 
   /** When `result` updates, close the modal and (after a short beat) show "Reveal verdict".
    * Scheduling must live here — not after `setResult` in submit — or the effect would cancel the timeout. */
@@ -62,8 +68,15 @@ export function DebatePage() {
 
   const onSubmit = useCallback(
     async (v: DebateFormValues) => {
-      if (typeof window !== "undefined" && isInviteKeyRequired() && !readInviteKey()) {
-        setError("Enter an invitation key to run debates in the beta.");
+      if (typeof window !== "undefined" && isInviteKeyRequired()) {
+        if (!readInviteKey()) {
+          setError("Enter an invitation key to run debates in the beta.");
+          return;
+        }
+        if (readInviteRemainingRuns() <= 0) {
+          setError("This invitation key has no runs left.");
+          return;
+        }
         return;
       }
       lastSubmitRef.current = v;
@@ -100,6 +113,9 @@ export function DebatePage() {
           },
         );
         setResult(data);
+        if (typeof window !== "undefined" && isInviteKeyRequired()) {
+          decrementInviteRemainingRuns();
+        }
         setStreamMeta(null);
         setStreamTurns([]);
       } catch (e) {

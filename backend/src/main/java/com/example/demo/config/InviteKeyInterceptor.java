@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import com.example.demo.invite.InviteKeyUsageService;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.HashSet;
@@ -19,6 +21,12 @@ public class InviteKeyInterceptor implements HandlerInterceptor {
 
     @Value("${app.invite.keys:}")
     private String rawKeys;
+
+    private final InviteKeyUsageService usageService;
+
+    public InviteKeyInterceptor(InviteKeyUsageService usageService) {
+        this.usageService = usageService;
+    }
 
     private Set<String> parseKeys() {
         Set<String> out = new HashSet<>();
@@ -46,6 +54,16 @@ public class InviteKeyInterceptor implements HandlerInterceptor {
         String t = provided.trim();
         if (!keys.contains(t)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invalid invitation key.");
+        }
+
+        // Consume a run for actual debate execution only (not custom probe endpoints).
+        String uri = request.getRequestURI() != null ? request.getRequestURI() : "";
+        if (uri.equals("/api/debate") || uri.equals("/api/debate/stream")) {
+            int remaining = usageService.consumeOneRun(t);
+            // After consuming: if it was already at 0, block immediately.
+            if (remaining <= 0) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This invitation key has no runs left.");
+            }
         }
         return true;
     }
