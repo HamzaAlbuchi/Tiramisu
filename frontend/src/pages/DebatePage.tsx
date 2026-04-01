@@ -7,6 +7,8 @@ import { exportDebatePdf } from "@/pdf/exportDebatePdf";
 import { runDebateStream, type DebateStreamMeta } from "@/services/api";
 import type { DebateModels, DebateResponse, DebateTurn } from "@/types/debate";
 import { readAuth, readSpace } from "@/state/spaceAuth";
+import { InviteKeyGate } from "@/components/InviteKeyGate";
+import { isInviteKeyRequired, readInviteKey } from "@/state/inviteKey";
 
 const SHELL = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
@@ -29,6 +31,9 @@ export function DebatePage() {
   const space = typeof window === "undefined" ? null : readSpace();
   const authed = typeof window === "undefined" ? null : readAuth();
   const byoLocked = space === "explore";
+  const inviteRequired = typeof window === "undefined" ? false : isInviteKeyRequired();
+  const hasInviteKey = typeof window === "undefined" ? false : readInviteKey() !== null;
+  const locked = inviteRequired && !hasInviteKey;
 
   /** When `result` updates, close the modal and (after a short beat) show "Reveal verdict".
    * Scheduling must live here — not after `setResult` in submit — or the effect would cancel the timeout. */
@@ -57,6 +62,10 @@ export function DebatePage() {
 
   const onSubmit = useCallback(
     async (v: DebateFormValues) => {
+      if (typeof window !== "undefined" && isInviteKeyRequired() && !readInviteKey()) {
+        setError("Enter an invitation key to run debates in the beta.");
+        return;
+      }
       lastSubmitRef.current = v;
       streamAbortRef.current?.abort();
       const ac = new AbortController();
@@ -195,6 +204,13 @@ export function DebatePage() {
 
         <section className={`${SHELL} pb-12`}>
           <div className="border border-arb-border bg-arb-surface p-5 sm:p-8">
+            {locked ? (
+              <InviteKeyGate
+                onUnlocked={() => {
+                  setError(null);
+                }}
+              />
+            ) : null}
             {space === "research" && !authed ? (
               <div className="mb-6 border border-dashed border-arb-border bg-arb-surface/40 px-4 py-3">
                 <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-arb-muted">Research space</p>
@@ -232,7 +248,16 @@ export function DebatePage() {
                 </div>
               ) : null}
             </div>
-            <DebateForm loading={loading} onSubmit={onSubmit} byoLocked={byoLocked} className="max-w-3xl" />
+            {!locked ? (
+              <DebateForm loading={loading} onSubmit={onSubmit} byoLocked={byoLocked} className="max-w-3xl" />
+            ) : (
+              <div className="max-w-3xl border border-dashed border-arb-border bg-arb-bg/30 px-4 py-6">
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-arb-muted">Debate locked</p>
+                <p className="mt-2 font-mono text-xs leading-relaxed text-arb-muted">
+                  Enter an invitation key above to unlock debate runs.
+                </p>
+              </div>
+            )}
 
             {error ? (
               <p className="mt-6 border border-red-900/40 bg-red-950/25 px-3 py-2 font-mono text-xs text-red-200/90">

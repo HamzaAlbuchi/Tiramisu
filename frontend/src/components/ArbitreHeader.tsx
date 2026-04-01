@@ -5,7 +5,7 @@ const nav = [
   { label: "Stats", href: "/stats", byom: false },
   { label: "BYO Model", href: "/byom", byom: true },
   { label: "Plans", href: "/plans", byom: false },
-  { label: "API", href: "#", byom: false },
+  { label: "Contact", href: "/contact", byom: false },
 ] as const;
 
 export function ArbitreHeader() {

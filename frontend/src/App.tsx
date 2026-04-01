@@ -7,6 +7,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { PricingPage } from "@/pages/PricingPage";
 import { ByomPage } from "@/pages/ByomPage";
 import { readAuth, readSpace, setPendingSpace } from "@/state/spaceAuth";
+import { ContactPage } from "@/pages/ContactPage";
 
 declare global {
   interface Window {
@@ -59,6 +60,9 @@ export default function App() {
   }
   if (path === "/login") {
     return <LoginPage />;
+  }
+  if (path === "/contact") {
+    return <ContactPage />;
   }
 
   // Initial render: navigation helper is installed in an effect. Render guarded pages directly

@@ -1,4 +1,5 @@
 import type { DebateRequestBody, DebateResponse, DebateTurn } from "@/types/debate";
+import { readInviteKey } from "@/state/inviteKey";
 
 export type DebateStreamMeta = Pick<DebateResponse, "topic" | "style" | "rounds" | "exchangeCount" | "models">;
 
@@ -118,6 +119,12 @@ async function safeFetch(url: string, init?: RequestInit): Promise<Response> {
   }
 }
 
+function inviteHeaders(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  const key = readInviteKey();
+  return key ? { "X-Invite-Key": key } : {};
+}
+
 export async function testCustomLlmConnection(body: {
   endpointUrl: string;
   apiKey?: string;
@@ -131,7 +138,7 @@ export async function testCustomLlmConnection(body: {
   const url = apiBase ? `${apiBase}${path}` : path;
   const res = await safeFetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...inviteHeaders() },
     body: JSON.stringify({
       endpointUrl: body.endpointUrl.trim(),
       apiKey: body.apiKey ?? "",
@@ -158,7 +165,7 @@ export async function runDebate(body: DebateRequestBody): Promise<DebateResponse
   const url = `${apiBase}/api/debate`;
   const res = await safeFetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...inviteHeaders() },
     body: JSON.stringify(body),
   });
 
@@ -244,6 +251,7 @@ export async function runDebateStream(
     headers: {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
+      ...inviteHeaders(),
     },
     body: JSON.stringify(body),
     signal: options.signal,
