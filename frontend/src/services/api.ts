@@ -1,5 +1,5 @@
 import type { DebateRequestBody, DebateResponse, DebateTurn } from "@/types/debate";
-import { readInviteKey } from "@/state/inviteKey";
+import { clearInviteKey, readInviteKey } from "@/state/inviteKey";
 
 export type DebateStreamMeta = Pick<DebateResponse, "topic" | "style" | "rounds" | "exchangeCount" | "models">;
 
@@ -125,6 +125,13 @@ function inviteHeaders(): Record<string, string> {
   return key ? { "X-Invite-Key": key } : {};
 }
 
+function handleInvite403(status: number, body: string): void {
+  if (status !== 403 || typeof window === "undefined") return;
+  if (/invitation key|invite key|no runs left|invalid invitation/i.test(body)) {
+    clearInviteKey();
+  }
+}
+
 export async function testCustomLlmConnection(body: {
   endpointUrl: string;
   apiKey?: string;
@@ -172,6 +179,7 @@ export async function runDebate(body: DebateRequestBody): Promise<DebateResponse
   const text = await res.text();
 
   if (!res.ok) {
+    handleInvite403(res.status, text);
     throw new Error(text?.slice(0, 500) || `HTTP ${res.status}`);
   }
 
@@ -259,6 +267,7 @@ export async function runDebateStream(
 
   if (!res.ok) {
     const text = await res.text();
+    handleInvite403(res.status, text);
     throw new Error(text?.slice(0, 500) || `HTTP ${res.status}`);
   }
 
@@ -342,6 +351,7 @@ export async function rerunJudgeFromTranscript(body: Pick<DebateResponse, "topic
   });
   const text = await res.text();
   if (!res.ok) {
+    handleInvite403(res.status, text);
     throw new Error(text?.slice(0, 500) || `HTTP ${res.status}`);
   }
   try {

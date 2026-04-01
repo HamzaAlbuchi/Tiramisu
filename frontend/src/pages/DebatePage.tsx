@@ -44,6 +44,12 @@ export function DebatePage() {
   const remainingRuns = typeof window === "undefined" ? 0 : readInviteRemainingRuns();
   const locked = inviteRequired && (!hasInviteKey || remainingRuns <= 0);
 
+  useEffect(() => {
+    const bump = () => setInviteUiTick((x) => x + 1);
+    window.addEventListener("tiramisu:invite-cleared", bump);
+    return () => window.removeEventListener("tiramisu:invite-cleared", bump);
+  }, []);
+
   /** When `result` updates, close the modal and (after a short beat) show "Reveal verdict".
    * Scheduling must live here — not after `setResult` in submit — or the effect would cancel the timeout. */
   useEffect(() => {
