@@ -327,3 +327,26 @@ export async function runDebateStream(
 
   return completePayload;
 }
+
+export async function rerunJudgeFromTranscript(body: Pick<DebateResponse, "topic" | "style" | "rounds" | "exchangeCount" | "models" | "turns">): Promise<DebateResponse> {
+  const apiBase = baseUrl();
+  if (import.meta.env.PROD && !apiBase) {
+    throw new Error(MISSING_API_URL_MSG);
+  }
+  const path = "/api/debate/judge";
+  const url = apiBase ? `${apiBase}${path}` : path;
+  const res = await safeFetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...inviteHeaders() },
+    body: JSON.stringify(body),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(text?.slice(0, 500) || `HTTP ${res.status}`);
+  }
+  try {
+    return JSON.parse(text) as DebateResponse;
+  } catch {
+    throw new Error("API response was not valid JSON.");
+  }
+}

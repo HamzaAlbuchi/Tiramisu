@@ -2,6 +2,7 @@ package com.example.demo.debate;
 
 import com.example.demo.debate.api.DebateApiRequest;
 import com.example.demo.debate.api.DebateApiResponse;
+import com.example.demo.debate.api.DebateJudgeRequest;
 import com.example.demo.debate.api.DebateModelsDto;
 import com.example.demo.debate.api.DebateStreamMetaDto;
 import com.example.demo.debate.api.DebateTurnDto;
@@ -18,7 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -119,6 +122,46 @@ public class DebateApiController {
         });
 
         return emitter;
+    }
+
+    /** Judge-only retry: re-run the judge on an existing transcript (no re-debate). */
+    @PostMapping("/judge")
+    public DebateApiResponse judge(@RequestBody(required = false) DebateJudgeRequest request) {
+        if (request == null) {
+            request = new DebateJudgeRequest();
+        }
+        String topic = request.getTopic();
+        String style = request.getStyle() != null ? request.getStyle() : "balanced";
+        int rounds = request.getRounds();
+        DebateJudgeRequest.Models models = request.getModels();
+        String modelA = models != null ? models.getPro() : "";
+        String modelB = models != null ? models.getAgainst() : "";
+        boolean custom = models != null && models.isCustom();
+
+        List<DebateExchange> exchanges = new ArrayList<>();
+        List<com.tiramisu.model.DebateTurn> transcript = new ArrayList<com.tiramisu.model.DebateTurn>();
+        List<DebateJudgeRequest.Turn> turns = request.getTurns();
+        if (turns != null) {
+            for (DebateJudgeRequest.Turn t : turns) {
+                if (t == null) continue;
+                String side = t.getSide() != null ? t.getSide() : "";
+                String role = t.getRole() != null ? t.getRole() : "";
+                String text = t.getText() != null ? t.getText() : "";
+                String modelName = t.getModelName() != null ? t.getModelName() : "";
+                double temp = t.getTemperature();
+                exchanges.add(new DebateExchange(side, modelName, role, temp, text));
+
+                int round = Math.max(1, (t.getIndex() / 2) + 1);
+                String normRole = "A".equalsIgnoreCase(side) ? "pro" : "against";
+                transcript.add(new com.tiramisu.model.DebateTurn(round, normRole, modelName, text));
+            }
+        }
+
+        DebateResult judged = debateService.judgeExistingTranscript(topic, modelA, modelB, custom, exchanges, transcript);
+        DebateApiResponse api = judgeService.toApiResponse(judged, style, rounds);
+        log.debug("Persisting debate result (judge retry)");
+        persistenceService.persist(api);
+        return api;
     }
 
     private static void safeSend(SseEmitter emitter, String eventName, Object data) {

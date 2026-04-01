@@ -242,6 +242,39 @@ public class DebateService {
                 useCustom);
     }
 
+    /**
+     * Judge-only retry: re-run the judge on an existing transcript.
+     * Does NOT re-generate debate turns.
+     */
+    public synchronized DebateResult judgeExistingTranscript(
+            String topicRaw,
+            String modelA,
+            String modelB,
+            boolean customModels,
+            List<DebateExchange> exchanges,
+            List<DebateTurn> transcript) {
+        String topic = normalizeTopic(topicRaw);
+        JudgeVerdict jv = geminiJudgeService.evaluate(transcript, topic, modelA, modelB);
+
+        ModelMetricScores scoresA = toModelMetricScores(jv.getProScores());
+        ModelMetricScores scoresB = toModelMetricScores(jv.getAgainstScores());
+        EvaluationBreakdown breakdown = new EvaluationBreakdown(scoresA, scoresB);
+
+        DebateVerdict verdict = mapToDebateVerdict(topic, jv, exchanges != null ? exchanges.size() : 0);
+
+        return new DebateResult(
+                topic,
+                exchanges != null ? exchanges.size() : 0,
+                exchanges,
+                verdict,
+                modelA,
+                modelB,
+                0.9,
+                0.4,
+                breakdown,
+                customModels);
+    }
+
     private static String deriveDisplayBase(CustomLlmConfig c) {
         if (c.getDisplayLabel() != null && !c.getDisplayLabel().trim().isEmpty()) {
             return c.getDisplayLabel().trim();

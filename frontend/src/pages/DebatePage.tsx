@@ -4,7 +4,7 @@ import { DebateForm, type DebateFormValues } from "@/components/DebateForm";
 import { EvaluationModal } from "@/components/EvaluationModal";
 import { TurnTimeline } from "@/components/TurnTimeline";
 import { exportDebatePdf } from "@/pdf/exportDebatePdf";
-import { runDebateStream, type DebateStreamMeta } from "@/services/api";
+import { rerunJudgeFromTranscript, runDebateStream, type DebateStreamMeta } from "@/services/api";
 import type { DebateModels, DebateResponse, DebateTurn } from "@/types/debate";
 import { readAuth, readSpace } from "@/state/spaceAuth";
 import { InviteKeyGate } from "@/components/InviteKeyGate";
@@ -310,14 +310,30 @@ export function DebatePage() {
                     <button
                       type="button"
                       onClick={() => {
-                        const last = lastSubmitRef.current;
-                        if (last) {
-                          onSubmit(last);
-                        }
+                        if (!result) return;
+                        setError(null);
+                        setLoading(true);
+                        (async () => {
+                          try {
+                            const judged = await rerunJudgeFromTranscript({
+                              topic: result.topic,
+                              style: result.style,
+                              rounds: result.rounds,
+                              exchangeCount: result.exchangeCount,
+                              models: result.models,
+                              turns: result.turns,
+                            });
+                            setResult(judged);
+                          } catch (e) {
+                            setError(e instanceof Error ? e.message : "Judge retry failed");
+                          } finally {
+                            setLoading(false);
+                          }
+                        })();
                       }}
                       className="border border-red-900/40 bg-red-950/20 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-red-200/90 transition hover:border-red-200/40"
                     >
-                      Retry
+                      Retry judge
                     </button>
                     <button
                       type="button"
