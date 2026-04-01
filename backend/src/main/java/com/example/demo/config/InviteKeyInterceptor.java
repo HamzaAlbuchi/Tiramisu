@@ -42,6 +42,10 @@ public class InviteKeyInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         if (!required) return true;
+        // Never block CORS preflight requests.
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
         Set<String> keys = parseKeys();
         if (keys.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Invite keys are not configured.");
