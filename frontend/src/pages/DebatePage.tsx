@@ -32,12 +32,15 @@ export function DebatePage() {
   const [sessionKey, setSessionKey] = useState(0);
   const [pdfExporting, setPdfExporting] = useState(false);
   const [judgeErrorDismissed, setJudgeErrorDismissed] = useState(false);
+  const [inviteUiTick, setInviteUiTick] = useState(0);
   const lastSubmitRef = useRef<DebateFormValues | null>(null);
   const space = typeof window === "undefined" ? null : readSpace();
   const authed = typeof window === "undefined" ? null : readAuth();
   const byoLocked = space === "explore";
   const inviteRequired = typeof window === "undefined" ? false : isInviteKeyRequired();
   const hasInviteKey = typeof window === "undefined" ? false : readInviteKey() !== null;
+  // Re-compute when the user unlocks (localStorage updates don't trigger renders).
+  void inviteUiTick;
   const remainingRuns = typeof window === "undefined" ? 0 : readInviteRemainingRuns();
   const locked = inviteRequired && (!hasInviteKey || remainingRuns <= 0);
 
@@ -224,6 +227,7 @@ export function DebatePage() {
               <InviteKeyGate
                 onUnlocked={() => {
                   setError(null);
+                  setInviteUiTick((x) => x + 1);
                 }}
               />
             ) : null}

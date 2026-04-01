@@ -10,7 +10,7 @@ export function InviteKeyGate({ onUnlocked }: { onUnlocked?: () => void }) {
   const existing = useMemo(() => (typeof window === "undefined" ? null : readInviteKey()), []);
   const [key, setKey] = useState(existing ?? "");
   const [err, setErr] = useState<string | null>(null);
-  const remaining = useMemo(() => (typeof window === "undefined" ? 0 : readInviteRemainingRuns()), []);
+  const remaining = typeof window === "undefined" ? 0 : readInviteRemainingRuns();
 
   if (!required) {
     return null;
