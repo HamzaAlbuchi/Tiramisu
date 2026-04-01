@@ -80,7 +80,6 @@ export function DebatePage() {
           setError("This invitation key has no runs left.");
           return;
         }
-        return;
       }
       lastSubmitRef.current = v;
       streamAbortRef.current?.abort();

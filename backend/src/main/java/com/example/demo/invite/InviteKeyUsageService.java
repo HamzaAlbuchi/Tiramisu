@@ -49,7 +49,7 @@ public class InviteKeyUsageService {
             usage.setRemainingRuns(0);
             usage.setLastUsedAt(Instant.now());
             repo.save(usage);
-            return 0;
+            return -1;
         }
         usage.setRemainingRuns(remaining - 1);
         usage.setLastUsedAt(Instant.now());

@@ -60,8 +60,9 @@ public class InviteKeyInterceptor implements HandlerInterceptor {
         String uri = request.getRequestURI() != null ? request.getRequestURI() : "";
         if (uri.equals("/api/debate") || uri.equals("/api/debate/stream")) {
             int remaining = usageService.consumeOneRun(t);
-            // After consuming: if it was already at 0, block immediately.
-            if (remaining <= 0) {
+            // If it was already at 0, block immediately. If remaining is 0, that means
+            // the user just consumed their last run and this request is allowed.
+            if (remaining < 0) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This invitation key has no runs left.");
             }
         }
