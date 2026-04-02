@@ -6,7 +6,8 @@ WORKDIR /build
 # Copy backend module; .dockerignore excludes target, .git, etc.
 COPY . .
 
-RUN mvn -B package -DskipTests
+# Keep flags before goals for maximum compatibility.
+RUN mvn -B -DskipTests=true clean package
 
 # Run stage (Railway sets PORT at runtime)
 FROM eclipse-temurin:8-jre-alpine
