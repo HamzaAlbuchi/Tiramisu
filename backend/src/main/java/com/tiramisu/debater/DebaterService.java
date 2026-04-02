@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 // TODO: Add persona injection per model provider to create more diverse argument styles
 // TODO: Cap history length to last N turns to manage token costs at scale
@@ -21,9 +22,6 @@ import java.util.List;
  */
 @Service
 public class DebaterService {
-
-    private static final double TEMP_PRO = 0.9;
-    private static final double TEMP_AGAINST = 0.4;
 
     private final GeminiClient geminiClient;
     private final OpenAiCompatibleClient openAiCompatibleClient;
@@ -52,19 +50,16 @@ public class DebaterService {
             String role,
             int round,
             List<DebateTurn> fullHistory,
-            CustomLlmConfig custom) {
+            CustomLlmConfig custom,
+            double temperature) {
         int totalRounds = scheduledRounds;
         String systemPrompt;
-        double temperature;
         if ("pro".equalsIgnoreCase(role)) {
             systemPrompt = buildProSystemPrompt(topic);
-            temperature = TEMP_PRO;
         } else if ("against".equalsIgnoreCase(role)) {
             systemPrompt = buildAgainstSystemPrompt(topic);
-            temperature = TEMP_AGAINST;
         } else {
             systemPrompt = buildProSystemPrompt(topic);
-            temperature = TEMP_PRO;
         }
 
         List<GeminiMessage> history = buildHistory(topic, role, round, totalRounds, fullHistory);
@@ -79,6 +74,28 @@ public class DebaterService {
                     0);
         }
         return geminiClient.completeWithHistory(systemPrompt, history, temperature);
+    }
+
+    /**
+     * Resolves temperatures for a debate run. Call once per run; used values should be persisted
+     * into the result payload.
+     */
+    public double[] resolveTemperatures(TemperatureMode mode, Double proTemperature, Double againstTemperature) {
+        TemperatureMode m = mode != null ? mode : TemperatureMode.BALANCED;
+        if (m == TemperatureMode.RANDOM) {
+            return new double[] { randomTemp(), randomTemp() };
+        }
+        if (m == TemperatureMode.CUSTOM) {
+            double p = proTemperature != null ? proTemperature.doubleValue() : 0.7;
+            double a = againstTemperature != null ? againstTemperature.doubleValue() : 0.7;
+            return new double[] { p, a };
+        }
+        // BALANCED (default)
+        return new double[] { 0.7, 0.7 };
+    }
+
+    private static double randomTemp() {
+        return ThreadLocalRandom.current().nextDouble(0.4, 0.95);
     }
 
     private List<GeminiMessage> buildHistory(

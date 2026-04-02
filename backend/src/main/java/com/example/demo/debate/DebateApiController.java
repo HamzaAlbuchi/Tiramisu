@@ -7,6 +7,7 @@ import com.example.demo.debate.api.DebateModelsDto;
 import com.example.demo.debate.api.DebateStreamMetaDto;
 import com.example.demo.debate.api.DebateTurnDto;
 import com.tiramisu.stats.DebatePersistenceService;
+import com.tiramisu.debater.TemperatureMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -57,7 +58,15 @@ public class DebateApiController {
         int rounds = request.getRounds();
         String style = request.getStyle() != null ? request.getStyle() : "balanced";
         CustomLlmConfig custom = CustomLlmConfig.fromRequest(request);
-        DebateResult result = debateService.runDebateWithRounds(request.getTopic(), rounds, style, custom);
+        TemperatureMode tm = request.getTemperatureMode() != null ? request.getTemperatureMode() : TemperatureMode.BALANCED;
+        DebateResult result = debateService.runDebateWithRounds(
+                request.getTopic(),
+                rounds,
+                style,
+                custom,
+                tm,
+                request.getProTemperature(),
+                request.getAgainstTemperature());
         DebateApiResponse api = judgeService.toApiResponse(result, style, rounds);
         log.debug("Persisting debate result (sync endpoint)");
         persistenceService.persist(api);
@@ -74,6 +83,7 @@ public class DebateApiController {
         final int rounds = req.getRounds();
         final String style = req.getStyle() != null ? req.getStyle() : "balanced";
         final CustomLlmConfig custom = CustomLlmConfig.fromRequest(req);
+        final TemperatureMode tm = req.getTemperatureMode() != null ? req.getTemperatureMode() : TemperatureMode.BALANCED;
 
         final SseEmitter emitter = new SseEmitter(SSE_TIMEOUT_MS);
         taskExecutor.execute(() -> {
@@ -101,7 +111,10 @@ public class DebateApiController {
                                     ex.getTemperature());
                             safeSend(emitter, "turn", turn);
                         },
-                        custom);
+                        custom,
+                        tm,
+                        req.getProTemperature(),
+                        req.getAgainstTemperature());
 
                 DebateApiResponse full = judgeService.toApiResponse(result, style, rounds);
                 safeSend(emitter, "complete", full);
@@ -140,6 +153,8 @@ public class DebateApiController {
 
         List<DebateExchange> exchanges = new ArrayList<>();
         List<com.tiramisu.model.DebateTurn> transcript = new ArrayList<com.tiramisu.model.DebateTurn>();
+        double proTempUsed = 0.7;
+        double againstTempUsed = 0.7;
         List<DebateJudgeRequest.Turn> turns = request.getTurns();
         if (turns != null) {
             for (DebateJudgeRequest.Turn t : turns) {
@@ -150,6 +165,11 @@ public class DebateApiController {
                 String modelName = t.getModelName() != null ? t.getModelName() : "";
                 double temp = t.getTemperature();
                 exchanges.add(new DebateExchange(side, modelName, role, temp, text));
+                if ("A".equalsIgnoreCase(side)) {
+                    proTempUsed = temp;
+                } else if ("B".equalsIgnoreCase(side)) {
+                    againstTempUsed = temp;
+                }
 
                 int round = Math.max(1, (t.getIndex() / 2) + 1);
                 String normRole = "A".equalsIgnoreCase(side) ? "pro" : "against";
@@ -157,7 +177,7 @@ public class DebateApiController {
             }
         }
 
-        DebateResult judged = debateService.judgeExistingTranscript(topic, modelA, modelB, custom, exchanges, transcript);
+        DebateResult judged = debateService.judgeExistingTranscript(topic, modelA, modelB, custom, exchanges, transcript, proTempUsed, againstTempUsed);
         DebateApiResponse api = judgeService.toApiResponse(judged, style, rounds);
         log.debug("Persisting debate result (judge retry)");
         persistenceService.persist(api);

@@ -55,6 +55,17 @@ public class DebateService {
      * API entry: {@code rounds} is Pro+Against pairs; minimum 1 pair, capped by {@link #MAX_EXCHANGES}.
      */
     public synchronized DebateResult runDebateWithRounds(String topicRaw, int rounds, String styleRaw, CustomLlmConfig custom) {
+        return runDebateWithRounds(topicRaw, rounds, styleRaw, custom, null, null, null);
+    }
+
+    public synchronized DebateResult runDebateWithRounds(
+            String topicRaw,
+            int rounds,
+            String styleRaw,
+            CustomLlmConfig custom,
+            com.tiramisu.debater.TemperatureMode temperatureMode,
+            Double proTemperature,
+            Double againstTemperature) {
         String topic = normalizeTopic(topicRaw);
         String style = normalizeStyle(styleRaw);
         int pairs = rounds < 1 ? 1 : rounds;
@@ -69,7 +80,7 @@ public class DebateService {
         if (exchanges > MAX_EXCHANGES) {
             exchanges = MAX_EXCHANGES;
         }
-        return runDebateInternal(topic, exchanges, style, rounds, null, null, custom);
+        return runDebateInternal(topic, exchanges, style, rounds, null, null, custom, temperatureMode, proTemperature, againstTemperature);
     }
 
     /**
@@ -83,6 +94,19 @@ public class DebateService {
             Consumer<StreamingMeta> onMeta,
             BiConsumer<Integer, DebateExchange> onTurn,
             CustomLlmConfig custom) {
+        return runDebateWithRoundsStreaming(topicRaw, rounds, styleRaw, onMeta, onTurn, custom, null, null, null);
+    }
+
+    public synchronized DebateResult runDebateWithRoundsStreaming(
+            String topicRaw,
+            int rounds,
+            String styleRaw,
+            Consumer<StreamingMeta> onMeta,
+            BiConsumer<Integer, DebateExchange> onTurn,
+            CustomLlmConfig custom,
+            com.tiramisu.debater.TemperatureMode temperatureMode,
+            Double proTemperature,
+            Double againstTemperature) {
         String topic = normalizeTopic(topicRaw);
         String style = normalizeStyle(styleRaw);
         int pairs = rounds < 1 ? 1 : rounds;
@@ -97,7 +121,7 @@ public class DebateService {
         if (exchanges > MAX_EXCHANGES) {
             exchanges = MAX_EXCHANGES;
         }
-        return runDebateInternal(topic, exchanges, style, rounds, onMeta, onTurn, custom);
+        return runDebateInternal(topic, exchanges, style, rounds, onMeta, onTurn, custom, temperatureMode, proTemperature, againstTemperature);
     }
 
     /** Metadata emitted once at the start of a streaming run. */
@@ -190,10 +214,18 @@ public class DebateService {
             int requestedRounds,
             Consumer<StreamingMeta> onMeta,
             BiConsumer<Integer, DebateExchange> onTurn,
-            CustomLlmConfig custom) {
+            CustomLlmConfig custom,
+            com.tiramisu.debater.TemperatureMode temperatureMode,
+            Double proTemperature,
+            Double againstTemperature) {
         int pairs = n / 2;
         List<DebateTurn> transcript = new ArrayList<DebateTurn>();
         List<DebateExchange> exchanges = new ArrayList<DebateExchange>();
+
+        // Resolve temperatures once per run (default BALANCED).
+        double[] temps = debaterService.resolveTemperatures(temperatureMode, proTemperature, againstTemperature);
+        double proTempUsed = temps[0];
+        double againstTempUsed = temps[1];
 
         boolean useCustom = custom != null;
         String modelA = DEFAULT_MODEL_A;
@@ -211,16 +243,16 @@ public class DebateService {
         debaterService.beginDebateSession(pairs);
         try {
             for (int round = 1; round <= pairs; round++) {
-                String proRaw = generateTurnWithRetry(topic, "pro", round, transcript, custom);
+                String proRaw = generateTurnWithRetry(topic, "pro", round, transcript, custom, proTempUsed);
                 String proText = ensureTurnText(proRaw);
                 transcript.add(new DebateTurn(round, "pro", modelA, proText));
-                exchanges.add(new DebateExchange("A", modelA, "Pro", 0.9, proText));
+                exchanges.add(new DebateExchange("A", modelA, "Pro", proTempUsed, proText));
                 notifyTurn(onTurn, exchanges);
 
-                String againstRaw = generateTurnWithRetry(topic, "against", round, transcript, custom);
+                String againstRaw = generateTurnWithRetry(topic, "against", round, transcript, custom, againstTempUsed);
                 String againstText = ensureTurnText(againstRaw);
                 transcript.add(new DebateTurn(round, "against", modelB, againstText));
-                exchanges.add(new DebateExchange("B", modelB, "Against", 0.4, againstText));
+                exchanges.add(new DebateExchange("B", modelB, "Against", againstTempUsed, againstText));
                 notifyTurn(onTurn, exchanges);
             }
         } finally {
@@ -237,7 +269,7 @@ public class DebateService {
 
         return new DebateResult(
                 topic, n, exchanges, verdict,
-                modelA, modelB, 0.9, 0.4,
+                modelA, modelB, proTempUsed, againstTempUsed,
                 breakdown,
                 useCustom);
     }
@@ -252,7 +284,9 @@ public class DebateService {
             String modelB,
             boolean customModels,
             List<DebateExchange> exchanges,
-            List<DebateTurn> transcript) {
+            List<DebateTurn> transcript,
+            double proTemperatureUsed,
+            double againstTemperatureUsed) {
         String topic = normalizeTopic(topicRaw);
         JudgeVerdict jv = geminiJudgeService.evaluate(transcript, topic, modelA, modelB);
 
@@ -269,8 +303,8 @@ public class DebateService {
                 verdict,
                 modelA,
                 modelB,
-                0.9,
-                0.4,
+                proTemperatureUsed,
+                againstTemperatureUsed,
                 breakdown,
                 customModels);
     }
@@ -312,13 +346,13 @@ public class DebateService {
     }
 
     private String generateTurnWithRetry(
-            String topic, String role, int round, List<DebateTurn> transcript, CustomLlmConfig custom) {
-        String raw = debaterService.generateTurn(topic, role, round, transcript, custom);
+            String topic, String role, int round, List<DebateTurn> transcript, CustomLlmConfig custom, double temperature) {
+        String raw = debaterService.generateTurn(topic, role, round, transcript, custom, temperature);
         if (raw != null && !raw.trim().isEmpty()) {
             return raw;
         }
         // One retry to mitigate transient provider/network failures.
-        return debaterService.generateTurn(topic, role, round, transcript, custom);
+        return debaterService.generateTurn(topic, role, round, transcript, custom, temperature);
     }
 
     private static String ensureTurnText(String raw) {

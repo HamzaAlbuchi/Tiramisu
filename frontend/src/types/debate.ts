@@ -2,6 +2,9 @@ export interface DebateRequestBody {
   topic: string;
   rounds: number;
   style: string;
+  temperatureMode?: "BALANCED" | "CUSTOM" | "RANDOM";
+  proTemperature?: number;
+  againstTemperature?: number;
   /** OpenAI-compatible chat-completions URL (backend appends /v1/chat/completions when needed). */
   customEndpointUrl?: string;
   customApiKey?: string;
@@ -78,6 +81,8 @@ export interface DebateResponse {
   style: string;
   rounds: number;
   exchangeCount: number;
+  proTemperatureUsed: number;
+  againstTemperatureUsed: number;
   models: DebateModels;
   turns: DebateTurn[];
   evaluation: DebateEvaluation;

@@ -12,6 +12,13 @@ public class DebateApiRequest {
     /** e.g. balanced, formal, casual, technical — affects stub phrasing only. */
     private String style = "balanced";
 
+    /** Temperature selection mode. Default: BALANCED. */
+    private com.tiramisu.debater.TemperatureMode temperatureMode = null;
+    /** Used when temperatureMode=CUSTOM. */
+    private Double proTemperature = null;
+    /** Used when temperatureMode=CUSTOM. */
+    private Double againstTemperature = null;
+
     /** When set, debate turns use this OpenAI-compatible chat-completions endpoint instead of Gemini. */
     private String customEndpointUrl = "";
     private String customApiKey = "";
@@ -41,6 +48,30 @@ public class DebateApiRequest {
 
     public void setStyle(String style) {
         this.style = style != null ? style : "balanced";
+    }
+
+    public com.tiramisu.debater.TemperatureMode getTemperatureMode() {
+        return temperatureMode;
+    }
+
+    public void setTemperatureMode(com.tiramisu.debater.TemperatureMode temperatureMode) {
+        this.temperatureMode = temperatureMode;
+    }
+
+    public Double getProTemperature() {
+        return proTemperature;
+    }
+
+    public void setProTemperature(Double proTemperature) {
+        this.proTemperature = proTemperature;
+    }
+
+    public Double getAgainstTemperature() {
+        return againstTemperature;
+    }
+
+    public void setAgainstTemperature(Double againstTemperature) {
+        this.againstTemperature = againstTemperature;
     }
 
     public String getCustomEndpointUrl() {

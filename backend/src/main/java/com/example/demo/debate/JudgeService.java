@@ -74,6 +74,8 @@ public class JudgeService {
                 style,
                 requestedRounds,
                 result.getExchangeCount(),
+                result.getModelATemperature(),
+                result.getModelBTemperature(),
                 models,
                 turns,
                 evaluation);
