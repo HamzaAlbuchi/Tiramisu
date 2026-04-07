@@ -48,7 +48,7 @@ public class DebateService {
     public synchronized DebateResult runDebate(String topicRaw, int requestedExchanges) {
         String topic = normalizeTopic(topicRaw);
         int n = clampExchanges(requestedExchanges);
-        return runDebateInternal(topic, n, "balanced", n / 2, null, null, null);
+        return runDebateInternal(topic, n, "balanced", n / 2, null, null, null, null, null, null);
     }
 
     /**
